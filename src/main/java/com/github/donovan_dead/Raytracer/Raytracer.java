@@ -7,17 +7,19 @@ import java.io.File;
 import javax.imageio.ImageIO;
 
 import com.github.donovan_dead.Colors.RGBColor;
+import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Object3D;
 import com.github.donovan_dead.Objects.Sphere;
 import com.github.donovan_dead.Physics.Intersection;
+import com.github.donovan_dead.Physics.LightSource;
 import com.github.donovan_dead.Physics.Ray;
 
 public class Raytracer {
     public static Camera cam;
     public static Scene scene;
 
-    public static int width = 1960;
+    public static int width = 1960 * 4;
     public static double aspect_ratio = 16.0/9.0; // width / height
     public static BufferedImage img;
 
@@ -28,8 +30,7 @@ public class Raytracer {
     }
 
     public static void InitializeCamera(){
-        Raytracer.cam = new Camera( Vector3.builder().X(0).Y(0).Z(0).build(), 1);
-        // Raytracer.cam.rotateZ(Math.toRadians(315));
+        Raytracer.cam = new Camera( Vector3.builder().X(0).Y(0).Z(1).build(), 1.2);
     }
 
     public static void InitializeScene(){
@@ -53,11 +54,34 @@ public class Raytracer {
 
         scene.addObject(
            new Sphere(
+            Vector3.builder().X(-2).Y(0.5).Z(-10).build(),
+            5,
+            new RGBColor(255,0,255)
+           )
+        );
+
+        scene.addObject(
+           new Sphere(
             Vector3.builder().X(2.5).Y(-0.5).Z(-7).build(),
             1,
             new RGBColor(0,255,0)
            )
         );
+        
+        scene.addLightSource(
+            new LightSource(
+                new Vector3(2,0,-2),
+                new RGBColor(1, 1, 1)
+            )
+        );
+
+        scene.addLightSource(
+            new LightSource(
+                new Vector3(2,0,-2),
+                new RGBColor(0.2, 0.2, 1)
+            )
+        );
+
     }
 
     public static void Render(){
@@ -87,11 +111,29 @@ public class Raytracer {
                 }
 
                 if(i != null){
+                    Vector3 baseColor = Vector3.builder().X(i.color().R()).Y(i.color().G()).Z(i.color().B()).build();
+                    Vector3 finalColor = new Vector3(0,0,0);
+
+                    for(LightSource l :  scene.getLights()){
+                        
+                        Vector3 vecToLight = l.origin().subtract(r.getPos(i.t())).normalize();
+                        Double resultDot = Math.max(0, Utils.dotProduct(vecToLight, i.normal().normalize()));
+                        
+                        finalColor = finalColor.add(
+                            Vector3.builder()
+                            .X(baseColor.X() * l.lightColor().R() * resultDot)
+                            .Y(baseColor.Y() * l.lightColor().G() * resultDot)
+                            .Z(baseColor.Z() * l.lightColor().B() * resultDot)
+                            .build()
+                        );
+                    }
+
                     Color color = new Color(
-                        (int)i.color().R(),
-                        (int)i.color().G(),
-                        (int)i.color().B()
+                        (int)Math.min(finalColor.X(), 255),
+                        (int)Math.min(finalColor.Y(), 255),
+                        (int)Math.min(finalColor.Z(), 255)
                     );
+
                     img.setRGB(w, h, color.getRGB());
                 } else {
                     Color color = new Color(
@@ -105,7 +147,7 @@ public class Raytracer {
         }
 
         try { 
-            ImageIO.write(img, "jpg", new File("temp.jpg"));   
+            ImageIO.write(img, "jpg", new File("base2.jpg"));   
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }

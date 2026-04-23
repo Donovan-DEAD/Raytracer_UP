@@ -1,5 +1,7 @@
 package com.github.donovan_dead.Colors;
 
+import java.awt.Color;
+
 public record RGBColor (double R, double G, double B) {
     
     public static class Builder {
@@ -12,5 +14,9 @@ public record RGBColor (double R, double G, double B) {
         public RGBColor build() {
             return new RGBColor(r, g, b);
         }
+    }
+
+    public Color toColor(){
+        return new Color((int)R, (int)G, (int)B);
     }
 }
