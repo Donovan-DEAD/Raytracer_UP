@@ -2,6 +2,7 @@ package com.github.donovan_dead.Raytracer;
 
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
+import com.github.donovan_dead.Objects.Plane;
 import com.github.donovan_dead.Physics.Ray;
 
 public class Camera {
@@ -18,13 +19,16 @@ public class Camera {
     double viewport_width;
     double viewport_height;
 
+    double farplane_dist;
+
     Vector3 horizontal;
     Vector3 vertical;
     Vector3 lower_left_corner;
 
-    public Camera(Vector3 center, double f) {
+    public Camera(Vector3 center, double f, double far) {
         this.center = center;
         this.focal_distance = f;
+        this.farplane_dist = far;
 
         updateOrientation();
         updateViewport();
@@ -85,5 +89,15 @@ public class Camera {
                 .add(vertical.scale(v));
 
         return new Ray(center, pixel.subtract(center).normalize());
+    }
+
+    public Plane getFarPlane(){
+        Ray r = getRay(0.5, 0.5);
+
+        return new Plane(
+            r.direction().scale(-1), 
+            r.getPos(farplane_dist), 
+            null
+        );
     }
 }

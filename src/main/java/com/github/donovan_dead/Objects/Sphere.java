@@ -17,6 +17,14 @@ public class Sphere extends Object3D{
         this.color = color;
     }
 
+    public void translate(Vector3 v) {
+        center = center.add(v);
+    }
+
+    public void scale(double s) {
+        radius = radius * s;
+    }
+
     public Intersection calculateIntersection(Ray ray){
         Vector3 L = Utils.diffVector3(ray.origin(), center);
 
