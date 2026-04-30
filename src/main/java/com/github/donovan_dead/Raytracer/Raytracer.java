@@ -19,7 +19,7 @@ public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960 * 4;
+    public static int width = 1960  /  2;
     public static double aspect_ratio = 16.0 / 9.0;
 
     public Raytracer(Camera cam, Scene scene) {
@@ -28,6 +28,8 @@ public class Raytracer {
     }
 
     public void Render(File outputFile) {
+        if(cam == null || scene == null ) return;
+        
         BufferedImage img = new BufferedImage(width, (int)(width / aspect_ratio), BufferedImage.TYPE_INT_RGB);
         
         Plane farPlane = cam.getFarPlane();

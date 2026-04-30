@@ -11,7 +11,6 @@ public class Camera {
     Vector3 width  = Vector3.builder().X(1).Y(0).Z(0).build(); // eje horizontal
     Ray normal;
 
-    Vector3 focal_point;
     double focal_distance;
     Vector3 center;
 
@@ -36,7 +35,6 @@ public class Camera {
 
     private void updateOrientation() {
         this.normal = new Ray(center, Utils.crossProduct(height, width).normalize());
-        this.focal_point = normal.getPos(focal_distance);
     }
 
     private void updateViewport() {
