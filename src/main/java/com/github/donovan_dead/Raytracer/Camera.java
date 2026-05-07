@@ -80,6 +80,10 @@ public class Camera {
         updateViewport();
     }
 
+    public void translate(Vector3 t){
+        this.center = center.add(t);
+    }
+
     public Ray getRay(double u, double v) {
         Vector3 pixel =
             lower_left_corner

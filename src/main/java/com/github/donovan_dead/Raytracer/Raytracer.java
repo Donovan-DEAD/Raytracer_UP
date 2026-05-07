@@ -7,19 +7,18 @@ import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 
-import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Object3D;
 import com.github.donovan_dead.Objects.Plane;
+import com.github.donovan_dead.Physics.BaseLightSource;
 import com.github.donovan_dead.Physics.Intersection;
-import com.github.donovan_dead.Physics.LightSource;
 import com.github.donovan_dead.Physics.Ray;
 
 public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960  /  2;
+    public static int width = 1960 / 2 ; // * 2;
     public static double aspect_ratio = 16.0 / 9.0;
 
     public Raytracer(Camera cam, Scene scene) {
@@ -29,9 +28,9 @@ public class Raytracer {
 
     public void Render(File outputFile) {
         if(cam == null || scene == null ) return;
-        
+
         BufferedImage img = new BufferedImage(width, (int)(width / aspect_ratio), BufferedImage.TYPE_INT_RGB);
-        
+
         Plane farPlane = cam.getFarPlane();
         farPlane.setColor(scene.background);
 
@@ -66,17 +65,9 @@ public class Raytracer {
                         Vector3 baseColor = Vector3.builder().X(i.color().R()).Y(i.color().G()).Z(i.color().B()).build();
                         Vector3 finalColor = new Vector3(0, 0, 0);
 
-                        for (LightSource l : scene.getLights()) {
-                            Vector3 vecToLight = l.origin().subtract(r.getPos(i.t())).normalize();
-                            double resultDot = Math.max(0, Utils.dotProduct(vecToLight, i.normal().normalize()));
-
-                            finalColor = finalColor.add(
-                                Vector3.builder()
-                                    .X(baseColor.X() * l.lightColor().R() * resultDot)
-                                    .Y(baseColor.Y() * l.lightColor().G() * resultDot)
-                                    .Z(baseColor.Z() * l.lightColor().B() * resultDot)
-                                    .build()
-                            );
+                        for (BaseLightSource l : scene.getLights()) {
+                            Vector3 lightContribution = l.getLightContribution(r.getPos(i.t()), i.normal(), baseColor);
+                            finalColor = finalColor.add(lightContribution);
                         }
 
                         color = new Color(

@@ -4,11 +4,11 @@ import java.util.ArrayList;
 
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Objects.Object3D;
-import com.github.donovan_dead.Physics.LightSource;
+import com.github.donovan_dead.Physics.BaseLightSource;
 
 public class Scene {
     protected ArrayList < Object3D > objects = new ArrayList<>();
-    protected ArrayList < LightSource > lights = new ArrayList<>(); // This is going to be used later;
+    protected ArrayList < BaseLightSource > lights = new ArrayList<>();
 
     public RGBColor background = new RGBColor(0,0,0);
 
@@ -16,7 +16,7 @@ public class Scene {
         objects.add(o);
     }
 
-    public void addLightSource(LightSource l){
+    public void addLightSource(BaseLightSource l){
         lights.add(l);
     }
 
@@ -24,7 +24,7 @@ public class Scene {
         return this.objects;
     }
 
-    public ArrayList <LightSource> getLights(){
+    public ArrayList<BaseLightSource> getLights(){
         return this.lights;
     }
 

@@ -7,39 +7,11 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import com.github.donovan_dead.Colors.RGBColor;
-import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.ObjObject;
 
 public class ObjReader {
     public static RGBColor defaultColor = new RGBColor(255,255,255);
-
-    // implementation for future algorithm of ear clipping.
-    // baricentric optimized way instead of doing cross product to calculate if is inside of a triangule, avoiding sqrt operations
-    private static boolean pointInTriangle(Vector3 p, Vector3 v0, Vector3 v1, Vector3 v2) {
-        Vector3 e0 = v1.subtract(v0);
-        Vector3 e1 = v2.subtract(v0);
-        Vector3 v  = p.subtract(v0);
-
-        double d00 = Utils.dotProduct(e0, e0);
-        double d01 = Utils.dotProduct(e0, e1);
-        double d11 = Utils.dotProduct(e1, e1);
-        double d20 = Utils.dotProduct(v,  e0);
-        double d21 = Utils.dotProduct(v,  e1);
-
-        double den = d00 * d11 - d01 * d01;
-
-        if (den <= 1e-12) return false;
-
-        double beta  = (d11 * d20 - d01 * d21) / den;
-        double gamma = (d00 * d21 - d01 * d20) / den;
-        double alpha = 1.0 - beta - gamma;
-
-        double eps = 1e-9;
-
-        return alpha >= -eps && beta >= -eps && gamma >= -eps;
-    }
-
 
     public static ObjObject ReadObjectFile(File file) throws Exception {
         
@@ -48,14 +20,27 @@ public class ObjReader {
         BufferedReader fileReader = new BufferedReader(new FileReader(file));
 
         ArrayList<Vector3> vertexList = new ArrayList<>();
-        ArrayList<double[]> textureList = new ArrayList<>();
         ArrayList<Integer> vertIdxList = new ArrayList<>();
+        
+        ArrayList<double[]> textureList = new ArrayList<>();
+        
+        ArrayList<Vector3> normalList = new ArrayList<>();
+        ArrayList<Integer> normalIdxList = new ArrayList<>();
 
         String line;
         StringTokenizer tokenizer;
         while ((line = fileReader.readLine()) != null) {
+            
+            
             tokenizer = new StringTokenizer(line);
             String type = tokenizer.nextToken();
+
+            if(type == "s"){
+                // while () {
+                    
+                // }
+                System.out.println("Smooth shading group founded");
+            }
 
             switch (type) {
                 case "v":
@@ -70,28 +55,50 @@ public class ObjReader {
 
                 case "f":
                     ArrayList<Integer> tempVertList = new ArrayList<>();
+                    ArrayList<Integer> tempNormVertList = new ArrayList<>();
 
                     while (tokenizer.hasMoreTokens()) {
                         String token =  tokenizer.nextToken();
                         String[] numbers = token.split("/");
 
                         tempVertList.add(Integer.parseInt(numbers[0])-1);
+
+                        Integer norm = -1;
+                        if (numbers.length > 2 && !numbers[2].isEmpty()) {
+                            norm = Integer.parseInt(numbers[2]) - 1;
+                        }
+                        tempNormVertList.add(norm);
                     }
 
-                    if(tempVertList.size() <= 3) vertIdxList.addAll(tempVertList);
+                    if(tempVertList.size() <= 3) {
+                        vertIdxList.addAll(tempVertList);
+                        normalIdxList.addAll(tempNormVertList);
+                    }
                     else {
-                        // Estrategia de abanico
                         Integer v0 = tempVertList.get(0);
+                        Integer n0 = tempNormVertList.get(0);
 
                         for(int i = 1; i < tempVertList.size() - 1; i++){
                             vertIdxList.add(v0);
+                            normalIdxList.add(n0);
+
                             vertIdxList.add(tempVertList.get(i));
+                            normalIdxList.add(tempNormVertList.get(i));
+                            
                             vertIdxList.add( tempVertList.get(i+1));
+                            normalIdxList.add(tempNormVertList.get(i+1));
                         }
                     }
                     
                     break;
                 case "vn":
+                    normalList.add(
+                        new Vector3(
+                            Double.parseDouble(tokenizer.nextToken()),
+                            Double.parseDouble(tokenizer.nextToken()),
+                            Double.parseDouble(tokenizer.nextToken())
+                        )
+                    );
                     break;
                 case "vt":
                     textureList.add(
@@ -101,7 +108,6 @@ public class ObjReader {
                         }
                     );
                     break;
-
                 default:
                     break;
             }
@@ -109,7 +115,7 @@ public class ObjReader {
         }
         fileReader.close();
 
-        return ObjObject.builder().vertexIdxList(vertIdxList).vertexList(vertexList).color(defaultColor).build();
+        return ObjObject.builder().vertexIdxList(vertIdxList).vertexList(vertexList).normalList(normalList).normalIdxList(normalIdxList).color(defaultColor).build();
     }
 
 }

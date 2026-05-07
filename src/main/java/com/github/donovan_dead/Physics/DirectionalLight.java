@@ -4,17 +4,23 @@ import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Math.Utils;
 
-public class LightSource extends BaseLightSource {
-    private final Vector3 origin;
+public class DirectionalLight extends BaseLightSource {
+    private final Vector3 direction;
     private final RGBColor lightColor;
 
-    public LightSource(Vector3 origin, RGBColor lightColor) {
-        this.origin = origin;
+    /**
+     * Creates a directional light with a given direction and color.
+     *
+     * @param direction the direction from which light comes (will be normalized)
+     * @param lightColor the color of the light
+     */
+    public DirectionalLight(Vector3 direction, RGBColor lightColor) {
+        this.direction = direction.normalize();
         this.lightColor = lightColor;
     }
 
-    public Vector3 origin() {
-        return origin;
+    public Vector3 direction() {
+        return direction;
     }
 
     public RGBColor lightColor() {
@@ -23,7 +29,8 @@ public class LightSource extends BaseLightSource {
 
     @Override
     public Vector3 getLightContribution(Vector3 position, Vector3 normal, Vector3 baseColor) {
-        Vector3 vecToLight = origin.subtract(position).normalize();
+        // For directional light, the vector to light is the direction itself (constant everywhere)
+        Vector3 vecToLight = direction;
         double resultDot = Math.max(0, Utils.dotProduct(vecToLight, normal.normalize()));
 
         return Vector3.builder()
