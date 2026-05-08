@@ -39,25 +39,29 @@ public class Main {
         for(ObjObject obj : list){
             if(count == 1){
                 obj.translate(
-                    new Vector3(5, 0, 0)
+                    new Vector3(4, 0, 0)
                 );
-                obj.scale(5);
+                
+                obj.scale(1.1);
             }
             else {
                 obj.translate(
-                    new Vector3(-5, -2, 0)
+                    new Vector3(-4, 0, 0)
                 );
+
+                obj.scale(1.1);
             }
-            
+
             count++;
         }
 
         return list;
     }
     public static void main(String[] args) throws Exception {
-        Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 100);
-        cam.translate(new Vector3(0, 5, 15));
+        Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 400);
+        cam.translate(new Vector3(0, 9, 6));
         cam.rotateZ(Math.toRadians(180));
+        cam.rotateX(Math.toRadians(-40));
         Scene scene = new Scene();
         
         ArrayList<ObjObject> objList = readObjectsFromDir("objects");
@@ -67,33 +71,27 @@ public class Main {
         
 
         scene.addLightSource(new LightSource(
-            new Vector3(-4, -5, -10),
-            new RGBColor(1, 1, 1)
+            new Vector3(-4, 25, -10),
+            new RGBColor(1, 1, 1),
+            1.0
         ));
 
         // scene.addLightSource(new LightSource(
         //     new Vector3(0, 0, 0),
-        //     new RGBColor(1 , 1, 1)
+        //     new RGBColor(1, 1, 1),
+        //     1.0
         // ));
 
         scene.addLightSource(new LightSource(
             new Vector3(0, -10, 15),
-            new RGBColor(1 , 1, 1)
+            new RGBColor(0.5, 0, 0.5),
+            1.0
         ));
-
-        // scene.addLightSource(new LightSource(
-        //     new Vector3(0, 50, 10),
-        //     new RGBColor(0.6 , 0, 0)
-        // ));
-
-        // scene.addLightSource(new DirectionalLight(
-        //     new Vector3(1, -1, -1).normalize(),
-        //     new RGBColor(0.8, 0.8, 0.8)
-        // ));
 
         // scene.addLightSource(new DirectionalLight(
         //     new Vector3(0, -1, 0).normalize(),
-        //     new RGBColor(0.8, 0.8, 0.8)
+        //     new RGBColor(0.8, 0.8, 0.8),
+        //     1.0
         // ));
 
         Raytracer raytracer = new Raytracer(cam, scene);
@@ -113,7 +111,8 @@ public class Main {
                 lights.set(0,
                     new LightSource(
                         light.origin().add(new Vector3(dt, 0, 0)),
-                        light.lightColor()
+                        light.lightColor(),
+                        light.intensity()
                     )
                 );
             }

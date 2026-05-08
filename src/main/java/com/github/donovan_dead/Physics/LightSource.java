@@ -7,10 +7,12 @@ import com.github.donovan_dead.Math.Utils;
 public class LightSource extends BaseLightSource {
     private final Vector3 origin;
     private final RGBColor lightColor;
+    private final double intensity;
 
-    public LightSource(Vector3 origin, RGBColor lightColor) {
+    public LightSource(Vector3 origin, RGBColor lightColor, double intensity) {
         this.origin = origin;
         this.lightColor = lightColor;
+        this.intensity = intensity;
     }
 
     public Vector3 origin() {
@@ -21,15 +23,25 @@ public class LightSource extends BaseLightSource {
         return lightColor;
     }
 
+    public double intensity() {
+        return intensity;
+    }
+
     @Override
     public Vector3 getLightContribution(Vector3 position, Vector3 normal, Vector3 baseColor) {
         Vector3 vecToLight = origin.subtract(position).normalize();
         double resultDot = Math.max(0, Utils.dotProduct(vecToLight, normal.normalize()));
 
+        Vector3 scaledColor = Vector3.builder()
+            .X(lightColor.R() * intensity)
+            .Y(lightColor.G() * intensity)
+            .Z(lightColor.B() * intensity)
+            .build();
+
         return Vector3.builder()
-            .X(baseColor.X() * lightColor.R() * resultDot)
-            .Y(baseColor.Y() * lightColor.G() * resultDot)
-            .Z(baseColor.Z() * lightColor.B() * resultDot)
+            .X(baseColor.X() * scaledColor.X() * resultDot)
+            .Y(baseColor.Y() * scaledColor.Y() * resultDot)
+            .Z(baseColor.Z() * scaledColor.Z() * resultDot)
             .build();
     }
 }
