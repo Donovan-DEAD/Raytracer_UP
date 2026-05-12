@@ -1,6 +1,8 @@
 package com.github.donovan_dead.Objects;
 
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.BarycentricCoordinates;
@@ -190,10 +192,10 @@ public class ObjObject extends Object3D {
                 .setStart(0)
                 .setBox(constructAABB(start, end));
 
-            double candidateCost = Double.MAX_VALUE;
-            int candidateIdx = 0;
-            int candidateAxis = 0;
-            double costTemp = 0;
+            final Result res = new Result();
+
+            ReentrantLock lock = new ReentrantLock();
+            ArrayList<Thread> threads = new ArrayList<>();
 
             // Sort by X axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -203,15 +205,30 @@ public class ObjObject extends Object3D {
             });
 
             for(int i = start + 1; i < end; i++){
-                AABB left = constructAABB(start, i);
-                AABB right = constructAABB(i, end);
-                costTemp = left.getSurfaceArea() * (i - start) + right.getSurfaceArea() * (end - i);
-                if( candidateCost > costTemp){
-                    candidateAxis = 0;
-                    candidateIdx = i;
-                    candidateCost = costTemp;
-                }
+                final int idx = i; 
+                Thread t = Thread.ofVirtual().start(() -> {
+                    AABB left = constructAABB(start, idx);
+                    AABB right = constructAABB(idx, end);
+                    double costTemp = left.getSurfaceArea() * (idx - start)
+                                    + right.getSurfaceArea() * (end - idx);
+
+                    lock.lock();
+                    try {
+                        res.compareToOther(costTemp, idx, 0);
+                    } finally {
+                        lock.unlock();
+                    }
+                });
+                threads.add(t);
             }
+            
+            for(Thread t : threads){
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }   threads.clear();
 
             // Sort by Y axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -221,15 +238,31 @@ public class ObjObject extends Object3D {
             });
 
             for(int i = start + 1; i < end; i++){
-                AABB left = constructAABB(start, i);
-                AABB right = constructAABB(i, end);
-                costTemp = left.getSurfaceArea() * (i - start) + right.getSurfaceArea() * (end - i);
-                if( candidateCost > costTemp){
-                    candidateAxis = 1;
-                    candidateIdx = i;
-                    candidateCost = costTemp;
-                }
+                
+                final int idx = i; 
+                Thread t = Thread.ofVirtual().start(() -> {
+                    AABB left = constructAABB(start, idx);
+                    AABB right = constructAABB(idx, end);
+                    double costTemp = left.getSurfaceArea() * (idx - start)
+                                    + right.getSurfaceArea() * (end - idx);
+
+                    lock.lock();
+                    try {
+                        res.compareToOther(costTemp, idx, 1);
+                    } finally {
+                        lock.unlock();
+                    }
+                });
+                threads.add(t);
             }
+            
+            for(Thread t : threads){
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }   threads.clear();
 
             // Sort by Z axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -239,24 +272,39 @@ public class ObjObject extends Object3D {
             });
 
             for(int i = start + 1; i < end; i++){
-                AABB left = constructAABB(start, i);
-                AABB right = constructAABB(i, end);
-                costTemp = left.getSurfaceArea() * (i - start) + right.getSurfaceArea() * (end - i);
-                if( candidateCost > costTemp){
-                    candidateAxis = 2;
-                    candidateIdx = i;
-                    candidateCost = costTemp;
-                }
+                
+                final int idx = i; 
+                Thread t = Thread.ofVirtual().start(() -> {
+                    AABB left = constructAABB(start, idx);
+                    AABB right = constructAABB(idx, end);
+                    double costTemp = left.getSurfaceArea() * (idx - start)
+                                    + right.getSurfaceArea() * (end - idx);
+
+                    lock.lock();
+                    try {
+                        res.compareToOther(costTemp, idx, 2);
+                    } finally {
+                        lock.unlock();
+                    }
+                });
+                threads.add(t);
             }
 
+            for(Thread t : threads){
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }   threads.clear();
             // Sort one final time by the best axis
-            if(candidateAxis == 0)
+            if(res.candidateAxis == 0)
                 auxiliarIdxList.subList(start, end).sort((a, b)->{
                     Vector3 v0 = getTrianguleCentroid(a);
                     Vector3 v1 = getTrianguleCentroid(b);
                     return Double.compare(v0.X(), v1.X());
                 });
-            else if (candidateAxis == 1)
+            else if (res.candidateAxis == 1)
                 auxiliarIdxList.subList(start, end).sort((a, b)->{
                     Vector3 v0 = getTrianguleCentroid(a);
                     Vector3 v1 = getTrianguleCentroid(b);
@@ -269,8 +317,8 @@ public class ObjObject extends Object3D {
                     return Double.compare(v0.Z(), v1.Z());
                 });
 
-            int leftIdx = recursiveBVHConstruction(start, candidateIdx);
-            int rightIdx = recursiveBVHConstruction(candidateIdx, end);
+            int leftIdx = recursiveBVHConstruction(start, res.candidateIdx);
+            int rightIdx = recursiveBVHConstruction(res.candidateIdx, end);
 
             node.setLeftChild(leftIdx).setRightChild(rightIdx);
 
@@ -397,6 +445,21 @@ public class ObjObject extends Object3D {
             object.color = this.color;
 
             return object;
+        }
+    }
+
+    private static class Result {
+        public double candidateCost = Double.MAX_VALUE;
+        public int candidateIdx = 0;
+        public int candidateAxis = 0;
+        
+        public void compareToOther(double cost, int idx, int axis){
+            if(candidateCost > cost)
+            {
+                candidateCost = cost;
+                candidateIdx = idx;
+                candidateAxis = axis;
+            }
         }
     }
 }

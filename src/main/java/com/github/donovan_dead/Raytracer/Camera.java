@@ -82,6 +82,9 @@ public class Camera {
 
     public void translate(Vector3 t){
         this.center = center.add(t);
+        
+        updateOrientation();
+        updateViewport();
     }
 
     public Ray getRay(double u, double v) {

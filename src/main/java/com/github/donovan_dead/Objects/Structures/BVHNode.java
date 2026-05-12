@@ -9,7 +9,7 @@ public class BVHNode {
     int leftChildIdx = -1;
     int rightChildIdx = -1;
 
-    public final static int minLeafSize = 4;
+    public final static int minLeafSize = 16 / 4;
 
     public boolean intersectsBox(Ray ray) {
         return this.box.intersectsBox(ray);
