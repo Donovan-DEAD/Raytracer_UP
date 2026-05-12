@@ -1,6 +1,10 @@
 package com.github.donovan_dead.Math;
 
 public record Vector3 (double X, double Y, double Z){
+    public static Vector3 Zero(){
+        return new Vector3(0, 0, 0);
+    }
+    
     public double getMagnitude(){
         return Math.sqrt(
             Math.pow(X(), 2) +
@@ -85,6 +89,11 @@ public record Vector3 (double X, double Y, double Z){
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    @Override
+    public String toString(){
+        return "< " + X() + " , " + Y() +  " , " + Z() + " >";
     }
 
     public static class Builder {

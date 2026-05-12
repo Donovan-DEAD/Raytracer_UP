@@ -35,6 +35,8 @@ public class Main {
             }
         }
 
+        System.out.println("Files readed");
+
         int count = 0;
         for(ObjObject obj : list){
             if(count == 1){
@@ -44,16 +46,27 @@ public class Main {
                 
                 obj.scale(1.1);
             }
-            else {
+            else if(count == 0){
                 obj.translate(
                     new Vector3(-4, 0, 0)
                 );
 
                 obj.scale(1.1);
+            } else {
+                
+                obj.translate(
+                    new Vector3(180, -80, -170)
+                );
+
+                obj.scale(5);
             }
 
+            obj.constructBVH();
+            System.out.println(obj.BVHTree.size());
             count++;
         }
+
+        System.out.println("BVH of objects finished");
 
         return list;
     }
@@ -71,7 +84,7 @@ public class Main {
         
 
         scene.addLightSource(new LightSource(
-            new Vector3(-4, 25, -10),
+            new Vector3(-30, 50, -3),
             new RGBColor(1, 1, 1),
             1.0
         ));
@@ -85,13 +98,13 @@ public class Main {
         scene.addLightSource(new LightSource(
             new Vector3(0, -10, 15),
             new RGBColor(0.5, 0, 0.5),
-            1.0
+            0.75
         ));
 
         // scene.addLightSource(new DirectionalLight(
         //     new Vector3(0, -1, 0).normalize(),
         //     new RGBColor(0.8, 0.8, 0.8),
-        //     1.0
+        //     0.3
         // ));
 
         Raytracer raytracer = new Raytracer(cam, scene);
@@ -104,13 +117,25 @@ public class Main {
         int count = 0;
         ArrayList<BaseLightSource> lights = scene.getLights();
         
+        // for(double t = 0; t < 120 * 4; t+=dt){
         for(double t = 0; t < 1; t+=dt){
-
+            long start = System.nanoTime();
             if (lights.get(0) instanceof LightSource) {
                 LightSource light = (LightSource) lights.get(0);
                 lights.set(0,
                     new LightSource(
-                        light.origin().add(new Vector3(dt, 0, 0)),
+                        light.origin().add(new Vector3(dt  / 2, 0, 0)),
+                        light.lightColor(),
+                        light.intensity()
+                    )
+                );
+            }
+
+            if (t > 90 && lights.get(1) instanceof LightSource) {
+                LightSource light = (LightSource) lights.get(0);
+                lights.set(0,
+                    new LightSource(
+                        light.origin().add(new Vector3(0, -dt  / 2, 0)),
                         light.lightColor(),
                         light.intensity()
                     )
@@ -120,6 +145,10 @@ public class Main {
             File outputFile = new File(tempDir, "render_" + count + ".jpg");
             raytracer.Render(outputFile);
             count++;
+
+            long end = System.nanoTime();
+            long elapsed = end - start;
+            System.out.println("Tiempo: " + (elapsed / 1_000_000.0) + " ms to render " + count);
         }
 
         System.out.println("Rendered to: " + tempDir.getAbsolutePath());

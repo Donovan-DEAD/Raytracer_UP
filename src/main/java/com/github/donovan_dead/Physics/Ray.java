@@ -20,4 +20,9 @@ public record Ray( Vector3 origin, Vector3 direction) {
                 .build();
     }
 
+    @Override
+    public String toString(){
+        return "Origin:" + origin + "\nDirection: " + direction;
+    }
+
 } 
