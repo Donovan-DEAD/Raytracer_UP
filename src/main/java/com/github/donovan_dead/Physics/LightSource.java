@@ -36,9 +36,9 @@ public class LightSource extends BaseLightSource {
         if (atenuation < 10e-6) atenuation = 0;
         
         Vector3 scaledColor = Vector3.builder()
-            .X(lightColor.R() * intensity)
-            .Y(lightColor.G() * intensity)
-            .Z(lightColor.B() * intensity)
+            .X(lightColor.R() * atenuation)
+            .Y(lightColor.G() * atenuation)
+            .Z(lightColor.B() * atenuation)
             .build();
 
         return Vector3.builder()

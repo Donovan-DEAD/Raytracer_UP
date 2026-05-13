@@ -9,6 +9,7 @@ import com.github.donovan_dead.Objects.ObjObject;
 import com.github.donovan_dead.Objects.Plane;
 import com.github.donovan_dead.Physics.BaseLightSource;
 import com.github.donovan_dead.Physics.LightSource;
+import com.github.donovan_dead.Physics.SpotLight;
 import com.github.donovan_dead.Raytracer.Camera;
 import com.github.donovan_dead.Raytracer.ObjReader;
 import com.github.donovan_dead.Raytracer.Raytracer;
@@ -55,7 +56,7 @@ public class Main {
             } else {
                 
                 obj.translate(
-                    new Vector3(180, -80, -170)
+                    new Vector3(180, 0, -170)
                 );
 
                 obj.scale(10);
@@ -85,8 +86,8 @@ public class Main {
         scene.addObject(
             new Plane(
                 new Vector3( 0, 1,0 ), 
-                new Vector3(0, -150, 0), 
-                new RGBColor(255, 255, 0)
+                new Vector3(0, -20, 0), 
+                new RGBColor(122, 122, 122)
             )
         );
 
@@ -95,16 +96,19 @@ public class Main {
         System.out.println("Top level BVH finished");
 
         scene.addLightSource(new LightSource(
-            new Vector3(-30, 50, -3),
+            new Vector3(-50, 50, -3),
             new RGBColor(1, 1, 1),
-            1
+            0.6
         ));
 
-        // scene.addLightSource(new LightSource(
-        //     new Vector3(0, -10, 15),
-        //     new RGBColor(0.5, 0, 0.5),
-        //     0.5
-        // ));
+        scene.addLightSource(new SpotLight(
+            new Vector3(0, 100, -2),
+            new Vector3(0, -1, 0),
+            new RGBColor(0.9, 0.9, 0.2),
+            5000,
+            Math.toRadians(20),
+            Math.toRadians(35)
+        ));
 
         Raytracer raytracer = new Raytracer(cam, scene);
 
@@ -116,29 +120,34 @@ public class Main {
         int count = 0;
         ArrayList<BaseLightSource> lights = scene.getLights();
         
-        // for(double t = 0; t < 120 * 3; t+=dt){
+        // for(double t = 0; t < 120 * 6; t+=dt){
         for(double t = 0; t < 1; t+=dt){
             long start = System.nanoTime();
-
-            if (lights.get(0) instanceof LightSource) {
-                LightSource light = (LightSource) lights.get(0);
-                lights.set(0,
-                    new LightSource(
-                        light.origin().add(new Vector3(dt * 1.5, 0, 0)),
-                        light.lightColor(),
-                        light.intensity()
-                    )
-                );
+            if(t < 240){
+                if (lights.get(0) instanceof LightSource) {
+                    LightSource light = (LightSource) lights.get(0);
+                    lights.set(0,
+                        new LightSource(
+                            light.origin().add(new Vector3(dt * 1.5, 0, 0)),
+                            light.lightColor(),
+                            light.intensity()
+                        )
+                    );
+                }
             }
 
-            // cam.translate(cam.center.scale(-1));
-            // cam.translate(new Vector3(
-            //     0,
-            //     2 * Math.sin(Math.toRadians(t)) + 9,
-            //     10
-            // ));
+            if(t > 360){
+            Vector3 orgCenter = new Vector3(0, 9 , 10);
+            cam.translate(cam.center.scale(-1));
+            cam.translate(new Vector3(
+                    10 * Math.cos(Math.toRadians(t)),
+                    9,
+                    10 * Math.sin(Math.toRadians(t))
+                ).add(orgCenter)
+            );
 
-            // cam.rotateY(Math.toRadians(dt));
+            cam.rotateY(Math.toRadians(dt));
+            }
 
             File outputFile = new File(tempDir, "render_" + count + ".jpg");
             raytracer.Render(outputFile);

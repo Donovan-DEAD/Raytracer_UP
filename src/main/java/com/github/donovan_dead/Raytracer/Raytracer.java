@@ -8,17 +8,18 @@ import java.util.ArrayList;
 import javax.imageio.ImageIO;
 
 import com.github.donovan_dead.Math.Vector3;
-import com.github.donovan_dead.Objects.Object3D;
 import com.github.donovan_dead.Objects.Plane;
 import com.github.donovan_dead.Physics.BaseLightSource;
 import com.github.donovan_dead.Physics.Intersection;
+import com.github.donovan_dead.Physics.LightSource;
 import com.github.donovan_dead.Physics.Ray;
+import com.github.donovan_dead.Physics.SpotLight;
 
 public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960 * 4;
+    public static int width = 1960 * 2;
     public static double aspect_ratio = 16.0 / 9.0;
 
     public Raytracer(Camera cam, Scene scene) {
@@ -56,8 +57,28 @@ public class Raytracer {
                     Vector3 baseColor = Vector3.builder().X(i.color().R()).Y(i.color().G()).Z(i.color().B()).build();
                     Vector3 finalColor = new Vector3(0, 0, 0);
 
+                    Vector3 hitPoint  = r.getPos(i.t());
+                    Vector3 hitNormal = i.normal();
+
                     for (BaseLightSource l : scene.getLights()) {
-                        Vector3 lightContribution = l.getLightContribution(r.getPos(i.t()), i.normal(), baseColor);
+                        Vector3 lightContribution;
+
+                        if (l instanceof LightSource) {
+                            LightSource light = (LightSource) l;
+                            lightContribution = hasAnObstacle(light.origin(), hitPoint, hitNormal)
+                                ? Vector3.Zero()
+                                : l.getLightContribution(hitPoint, hitNormal, baseColor);
+
+                        } else if (l instanceof SpotLight) {
+                            SpotLight spotlight = (SpotLight) l;
+                            lightContribution = hasAnObstacle(spotlight.origin(), hitPoint, hitNormal)
+                                ? Vector3.Zero()
+                                : l.getLightContribution(hitPoint, hitNormal, baseColor);
+
+                        } else {
+                            lightContribution = l.getLightContribution(hitPoint, hitNormal, baseColor);
+                        }
+
                         finalColor = finalColor.add(lightContribution);
                     }
 
@@ -89,5 +110,15 @@ public class Raytracer {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    private boolean hasAnObstacle(Vector3 lightOrigin, Vector3 hitPoint, Vector3 hitNormal) {
+        Ray shadowRay = new Ray(
+            hitPoint.add(hitNormal.normalize().scale(1e-8)),
+            lightOrigin.subtract(hitPoint).normalize()
+        );
+        Intersection shadowHit = scene.calculateIntersection(shadowRay);
+        double distToLight = lightOrigin.subtract(hitPoint).getMagnitude();
+        return shadowHit != null && shadowHit.t() < distToLight;
     }
 }
