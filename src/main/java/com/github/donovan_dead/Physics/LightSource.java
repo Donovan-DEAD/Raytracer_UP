@@ -32,6 +32,9 @@ public class LightSource extends BaseLightSource {
         Vector3 vecToLight = origin.subtract(position).normalize();
         double resultDot = Math.max(0, Utils.dotProduct(vecToLight, normal.normalize()));
 
+        double atenuation = intensity / Math.pow(vecToLight.getMagnitude(), 2);
+        if (atenuation < 10e-6) atenuation = 0;
+        
         Vector3 scaledColor = Vector3.builder()
             .X(lightColor.R() * intensity)
             .Y(lightColor.G() * intensity)

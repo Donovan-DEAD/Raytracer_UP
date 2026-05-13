@@ -3,6 +3,7 @@ package com.github.donovan_dead.Objects;
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
+import com.github.donovan_dead.Objects.Structures.AABB;
 import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
 
@@ -64,5 +65,21 @@ public class Triangule extends Object3D {
         v0 = centroid.add(v0.subtract(centroid).scale(s));
         v1 = centroid.add(v1.subtract(centroid).scale(s));
         v2 = centroid.add(v2.subtract(centroid).scale(s));
+    }
+
+    public AABB getBox() {
+        double eps = 1e-4;
+        return new AABB(
+            new Vector3(
+                Math.min(v0.X(), Math.min(v1.X(), v2.X())) - eps,
+                Math.min(v0.Y(), Math.min(v1.Y(), v2.Y())) - eps,
+                Math.min(v0.Z(), Math.min(v1.Z(), v2.Z())) - eps
+            ),
+            new Vector3(
+                Math.max(v0.X(), Math.max(v1.X(), v2.X())) + eps,
+                Math.max(v0.Y(), Math.max(v1.Y(), v2.Y())) + eps,
+                Math.max(v0.Z(), Math.max(v1.Z(), v2.Z())) + eps
+            )
+        );
     }
 }

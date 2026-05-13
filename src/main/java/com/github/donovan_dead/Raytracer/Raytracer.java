@@ -18,7 +18,7 @@ public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960 * 3 / 4 ; // * 2;
+    public static int width = 1960 * 4;
     public static double aspect_ratio = 16.0 / 9.0;
 
     public Raytracer(Camera cam, Scene scene) {
@@ -47,41 +47,26 @@ public class Raytracer {
                     Ray r = cam.getRay(u, v);
 
                     Intersection i = farPlane.calculateIntersection(r);
-                    for (Object3D o : scene.getObjects()) {
-                        Intersection temp = o.calculateIntersection(r);
-
-                        if (i == null) {
-                            i = temp;
-                            continue;
-                        }
-
-                        if (temp != null) {
-                            i = (temp.t() < i.t()) ? temp : i;
-                        }
-                    }
+                    Intersection objectIn = scene.calculateIntersection(r);
+                    
+                    if(objectIn != null) 
+                     i = (i.t() < objectIn.t()) ? i: objectIn ;
 
                     Color color;
-                    if (i != null) {
-                        Vector3 baseColor = Vector3.builder().X(i.color().R()).Y(i.color().G()).Z(i.color().B()).build();
-                        Vector3 finalColor = new Vector3(0, 0, 0);
+                    Vector3 baseColor = Vector3.builder().X(i.color().R()).Y(i.color().G()).Z(i.color().B()).build();
+                    Vector3 finalColor = new Vector3(0, 0, 0);
 
-                        for (BaseLightSource l : scene.getLights()) {
-                            Vector3 lightContribution = l.getLightContribution(r.getPos(i.t()), i.normal(), baseColor);
-                            finalColor = finalColor.add(lightContribution);
-                        }
-
-                        color = new Color(
-                            (int)Math.min(finalColor.X(), 255),
-                            (int)Math.min(finalColor.Y(), 255),
-                            (int)Math.min(finalColor.Z(), 255)
-                        );
-                    } else {
-                        color = new Color(
-                            (int)scene.background.R(),
-                            (int)scene.background.G(),
-                            (int)scene.background.B()
-                        );
+                    for (BaseLightSource l : scene.getLights()) {
+                        Vector3 lightContribution = l.getLightContribution(r.getPos(i.t()), i.normal(), baseColor);
+                        finalColor = finalColor.add(lightContribution);
                     }
+
+                    color = new Color(
+                        (int)Math.min(finalColor.X(), 255),
+                        (int)Math.min(finalColor.Y(), 255),
+                        (int)Math.min(finalColor.Z(), 255)
+                    );
+                    
 
                     synchronized (img) {
                         img.setRGB(w, row, color.getRGB());

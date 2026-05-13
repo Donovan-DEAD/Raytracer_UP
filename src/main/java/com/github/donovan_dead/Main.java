@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.ObjObject;
+import com.github.donovan_dead.Objects.Plane;
 import com.github.donovan_dead.Physics.BaseLightSource;
-import com.github.donovan_dead.Physics.DirectionalLight;
 import com.github.donovan_dead.Physics.LightSource;
 import com.github.donovan_dead.Raytracer.Camera;
 import com.github.donovan_dead.Raytracer.ObjReader;
@@ -62,49 +62,48 @@ public class Main {
             }
 
             obj.constructBVH();
-            System.out.println(obj.BVHTree.size());
+            System.out.println("Object BVH finished with " + obj.BVHTree.size() + " nodes.");
             count++;
         }
 
         System.out.println("BVH of objects finished");
-
         return list;
     }
     public static void main(String[] args) throws Exception {
-        Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 400);
+        Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 1000);
         cam.translate(new Vector3(0, 9, 10));
         cam.rotateZ(Math.toRadians(180));
         cam.rotateX(Math.toRadians(-40));
+
         Scene scene = new Scene();
         
         ArrayList<ObjObject> objList = readObjectsFromDir("objects");
         
         if(objList == null) throw new Exception("No objects where found");
         for(ObjObject obj : objList) scene.addObject(obj);
-        
+
+        scene.addObject(
+            new Plane(
+                new Vector3( 0, 1,0 ), 
+                new Vector3(0, -150, 0), 
+                new RGBColor(255, 255, 0)
+            )
+        );
+
+        System.out.println("Top level BVH started");
+        scene.constructBVH();
+        System.out.println("Top level BVH finished");
 
         scene.addLightSource(new LightSource(
             new Vector3(-30, 50, -3),
             new RGBColor(1, 1, 1),
-            1.0
+            1
         ));
 
         // scene.addLightSource(new LightSource(
-        //     new Vector3(0, 0, 0),
-        //     new RGBColor(1, 1, 1),
-        //     1.0
-        // ));
-
-        scene.addLightSource(new LightSource(
-            new Vector3(0, -10, 15),
-            new RGBColor(0.5, 0, 0.5),
-            0.75
-        ));
-
-        // scene.addLightSource(new DirectionalLight(
-        //     new Vector3(0, -1, 0).normalize(),
-        //     new RGBColor(0.8, 0.8, 0.8),
-        //     0.3
+        //     new Vector3(0, -10, 15),
+        //     new RGBColor(0.5, 0, 0.5),
+        //     0.5
         // ));
 
         Raytracer raytracer = new Raytracer(cam, scene);
@@ -120,26 +119,27 @@ public class Main {
         // for(double t = 0; t < 120 * 3; t+=dt){
         for(double t = 0; t < 1; t+=dt){
             long start = System.nanoTime();
+
             if (lights.get(0) instanceof LightSource) {
                 LightSource light = (LightSource) lights.get(0);
                 lights.set(0,
                     new LightSource(
-                        light.origin().add(new Vector3(dt  / 2, 0, 0)),
+                        light.origin().add(new Vector3(dt * 1.5, 0, 0)),
                         light.lightColor(),
                         light.intensity()
                     )
                 );
             }
 
-            if(t < 180){
-                cam.translate(new Vector3(0, 0.1, -0.15));
-                cam.rotateX(Math.toRadians(-0.2));
-                // cam.rotateY(Math.toRadians(1));
-            } else {
-                cam.translate(new Vector3(0, -0.1, 0.15));
-                cam.rotateX(Math.toRadians(0.2));
-                // cam.rotateY(Math.toRadians(1));
-            }
+            // cam.translate(cam.center.scale(-1));
+            // cam.translate(new Vector3(
+            //     0,
+            //     2 * Math.sin(Math.toRadians(t)) + 9,
+            //     10
+            // ));
+
+            // cam.rotateY(Math.toRadians(dt));
+
             File outputFile = new File(tempDir, "render_" + count + ".jpg");
             raytracer.Render(outputFile);
             count++;

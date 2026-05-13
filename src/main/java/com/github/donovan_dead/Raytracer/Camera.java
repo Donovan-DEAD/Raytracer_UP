@@ -12,7 +12,7 @@ public class Camera {
     Ray normal;
 
     double focal_distance;
-    Vector3 center;
+    public Vector3 center;
 
     double aspect_ratio = 16.0/9.0; // width / height
     double viewport_width;

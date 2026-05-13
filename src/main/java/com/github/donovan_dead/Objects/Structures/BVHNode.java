@@ -20,6 +20,7 @@ public class BVHNode {
     }
 
     public BVHNode setBox(AABB box){ this.box = box; return this; }
+    public AABB getBox(){ return this.box; }
 
     public BVHNode setStart(int s) { this.start = s; return this; }
     public int getStart(){ return this.start; }

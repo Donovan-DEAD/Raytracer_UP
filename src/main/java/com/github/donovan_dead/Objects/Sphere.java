@@ -3,6 +3,7 @@ package com.github.donovan_dead.Objects;
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
+import com.github.donovan_dead.Objects.Structures.AABB;
 import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
 
@@ -23,6 +24,13 @@ public class Sphere extends Object3D{
 
     public void scale(double s) {
         radius = radius * s;
+    }
+
+    public AABB getBox() {
+        return new AABB(
+            new Vector3(center.X() - radius, center.Y() - radius, center.Z() - radius),
+            new Vector3(center.X() + radius, center.Y() + radius, center.Z() + radius)
+        );
     }
 
     public Intersection calculateIntersection(Ray ray){

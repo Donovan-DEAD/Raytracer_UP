@@ -1,7 +1,6 @@
 package com.github.donovan_dead.Objects;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.donovan_dead.Colors.RGBColor;
@@ -193,9 +192,7 @@ public class ObjObject extends Object3D {
                 .setBox(constructAABB(start, end));
 
             final Result res = new Result();
-
             ReentrantLock lock = new ReentrantLock();
-            ArrayList<Thread> threads = new ArrayList<>();
 
             // Sort by X axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -203,32 +200,7 @@ public class ObjObject extends Object3D {
                 Vector3 v1 = getTrianguleCentroid(b);
                 return Double.compare(v0.X(), v1.X());
             });
-
-            for(int i = start + 1; i < end; i++){
-                final int idx = i; 
-                Thread t = Thread.ofVirtual().start(() -> {
-                    AABB left = constructAABB(start, idx);
-                    AABB right = constructAABB(idx, end);
-                    double costTemp = left.getSurfaceArea() * (idx - start)
-                                    + right.getSurfaceArea() * (end - idx);
-
-                    lock.lock();
-                    try {
-                        res.compareToOther(costTemp, idx, 0);
-                    } finally {
-                        lock.unlock();
-                    }
-                });
-                threads.add(t);
-            }
-            
-            for(Thread t : threads){
-                try {
-                    t.join();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }   threads.clear();
+            evaluateSAHSplits(start, end, 0, res, lock);
 
             // Sort by Y axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -236,33 +208,7 @@ public class ObjObject extends Object3D {
                 Vector3 v1 = getTrianguleCentroid(b);
                 return Double.compare(v0.Y(), v1.Y());
             });
-
-            for(int i = start + 1; i < end; i++){
-                
-                final int idx = i; 
-                Thread t = Thread.ofVirtual().start(() -> {
-                    AABB left = constructAABB(start, idx);
-                    AABB right = constructAABB(idx, end);
-                    double costTemp = left.getSurfaceArea() * (idx - start)
-                                    + right.getSurfaceArea() * (end - idx);
-
-                    lock.lock();
-                    try {
-                        res.compareToOther(costTemp, idx, 1);
-                    } finally {
-                        lock.unlock();
-                    }
-                });
-                threads.add(t);
-            }
-            
-            for(Thread t : threads){
-                try {
-                    t.join();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }   threads.clear();
+            evaluateSAHSplits(start, end, 1, res, lock);
 
             // Sort by Z axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -270,33 +216,7 @@ public class ObjObject extends Object3D {
                 Vector3 v1 = getTrianguleCentroid(b);
                 return Double.compare(v0.Z(), v1.Z());
             });
-
-            for(int i = start + 1; i < end; i++){
-                
-                final int idx = i; 
-                Thread t = Thread.ofVirtual().start(() -> {
-                    AABB left = constructAABB(start, idx);
-                    AABB right = constructAABB(idx, end);
-                    double costTemp = left.getSurfaceArea() * (idx - start)
-                                    + right.getSurfaceArea() * (end - idx);
-
-                    lock.lock();
-                    try {
-                        res.compareToOther(costTemp, idx, 2);
-                    } finally {
-                        lock.unlock();
-                    }
-                });
-                threads.add(t);
-            }
-
-            for(Thread t : threads){
-                try {
-                    t.join();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }   threads.clear();
+            evaluateSAHSplits(start, end, 2, res, lock);
             // Sort one final time by the best axis
             if(res.candidateAxis == 0)
                 auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -323,6 +243,29 @@ public class ObjObject extends Object3D {
             node.setLeftChild(leftIdx).setRightChild(rightIdx);
 
             return nodeIdx;
+        }
+    }
+
+    private void evaluateSAHSplits(int start, int end, int axis, Result res, ReentrantLock lock) {
+        ArrayList<Thread> threads = new ArrayList<>();
+        for (int i = start + 1; i < end; i++) {
+            final int idx = i;
+            threads.add(Thread.ofVirtual().start(() -> {
+                AABB left = constructAABB(start, idx);
+                AABB right = constructAABB(idx, end);
+                double costTemp = left.getSurfaceArea() * (idx - start)
+                                + right.getSurfaceArea() * (end - idx);
+                lock.lock();
+                try {
+                    res.compareToOther(costTemp, idx, axis);
+                } finally {
+                    lock.unlock();
+                }
+            }));
+        }
+        for (Thread t : threads) {
+            try { t.join(); }
+            catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         }
     }
 
@@ -393,6 +336,10 @@ public class ObjObject extends Object3D {
 
 
         return aabb;
+    }
+
+    public AABB getBox(){
+        return BVHTree.get(0).getBox();
     }
 
     public static Builder builder(){
