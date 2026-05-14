@@ -1,7 +1,6 @@
 package com.github.donovan_dead.Objects;
 
 import java.util.ArrayList;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.BarycentricCoordinates;
@@ -191,8 +190,7 @@ public class ObjObject extends Object3D {
                 .setStart(0)
                 .setBox(constructAABB(start, end));
 
-            final Result res = new Result();
-            ReentrantLock lock = new ReentrantLock();
+            Result res = new Result();
 
             // Sort by X axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -200,7 +198,7 @@ public class ObjObject extends Object3D {
                 Vector3 v1 = getTrianguleCentroid(b);
                 return Double.compare(v0.X(), v1.X());
             });
-            evaluateSAHSplits(start, end, 0, res, lock);
+            evaluateSAHSplits(start, end, 0, res);
 
             // Sort by Y axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -208,7 +206,7 @@ public class ObjObject extends Object3D {
                 Vector3 v1 = getTrianguleCentroid(b);
                 return Double.compare(v0.Y(), v1.Y());
             });
-            evaluateSAHSplits(start, end, 1, res, lock);
+            evaluateSAHSplits(start, end, 1, res);
 
             // Sort by Z axis
             auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -216,7 +214,7 @@ public class ObjObject extends Object3D {
                 Vector3 v1 = getTrianguleCentroid(b);
                 return Double.compare(v0.Z(), v1.Z());
             });
-            evaluateSAHSplits(start, end, 2, res, lock);
+            evaluateSAHSplits(start, end, 2, res);
             // Sort one final time by the best axis
             if(res.candidateAxis == 0)
                 auxiliarIdxList.subList(start, end).sort((a, b)->{
@@ -246,27 +244,41 @@ public class ObjObject extends Object3D {
         }
     }
 
-    private void evaluateSAHSplits(int start, int end, int axis, Result res, ReentrantLock lock) {
-        ArrayList<Thread> threads = new ArrayList<>();
-        for (int i = start + 1; i < end; i++) {
-            final int idx = i;
-            threads.add(Thread.ofVirtual().start(() -> {
-                AABB left = constructAABB(start, idx);
-                AABB right = constructAABB(idx, end);
-                double costTemp = left.getSurfaceArea() * (idx - start)
-                                + right.getSurfaceArea() * (end - idx);
-                lock.lock();
-                try {
-                    res.compareToOther(costTemp, idx, axis);
-                } finally {
-                    lock.unlock();
-                }
-            }));
+    private void evaluateSAHSplits(int start, int end, int axis, Result res) {
+        int n = end - start;
+
+        // leftPrefix[i] = AABB acumulado de [start, start+i]
+        AABB[] leftPrefix = new AABB[n];
+        leftPrefix[0] = getTriangleAABB(start);
+        for (int i = 1; i < n; i++) {
+            leftPrefix[i] = new AABB(leftPrefix[i - 1].min(), leftPrefix[i - 1].max());
+            leftPrefix[i].extendToAABB(getTriangleAABB(start + i));
         }
-        for (Thread t : threads) {
-            try { t.join(); }
-            catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+
+        // rightPrefix[i] = AABB acumulado de [start+i, end)
+        AABB[] rightPrefix = new AABB[n];
+        rightPrefix[n - 1] = getTriangleAABB(end - 1);
+        for (int i = n - 2; i >= 0; i--) {
+            rightPrefix[i] = new AABB(rightPrefix[i + 1].min(), rightPrefix[i + 1].max());
+            rightPrefix[i].extendToAABB(getTriangleAABB(start + i));
         }
+
+        for (int k = 1; k < n; k++) {
+            double costTemp = leftPrefix[k - 1].getSurfaceArea() * k
+                            + rightPrefix[k].getSurfaceArea() * (n - k);
+            res.compareToOther(costTemp, start + k, axis);
+        }
+    }
+
+    private AABB getTriangleAABB(int pos) {
+        int triIdx = auxiliarIdxList.get(pos);
+        Vector3 v0 = vertexList.get(vertIdxList.get(triIdx * 3));
+        Vector3 v1 = vertexList.get(vertIdxList.get(triIdx * 3 + 1));
+        Vector3 v2 = vertexList.get(vertIdxList.get(triIdx * 3 + 2));
+        AABB aabb = new AABB(v0, v0);
+        aabb.extendToVertex(v1);
+        aabb.extendToVertex(v2);
+        return aabb;
     }
 
     private Vector3 getTrianguleCentroid(int index){

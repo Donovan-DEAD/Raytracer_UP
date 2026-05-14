@@ -1,7 +1,6 @@
 package com.github.donovan_dead.Raytracer;
 
 import java.util.ArrayList;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Objects.Object3D;
@@ -115,8 +114,7 @@ public class Scene {
                 .setBox(constructAABB(start, end));
 
 
-            final Result res = new Result();
-            ReentrantLock lock = new ReentrantLock();
+            Result res = new Result();
 
             // Sort by X axis
             objectsIdx.subList(start, end).sort((a, b) ->
@@ -125,7 +123,7 @@ public class Scene {
                     objects.get(b).getBox().getCentroid().X()
                 )
             );
-            evaluateSAHSplits(start, end, 0, res, lock);
+            evaluateSAHSplits(start, end, 0, res);
 
             // Sort by Y axis
             objectsIdx.subList(start, end).sort((a, b) ->
@@ -134,7 +132,7 @@ public class Scene {
                     objects.get(b).getBox().getCentroid().Y()
                 )
             );
-            evaluateSAHSplits(start, end, 1, res, lock);
+            evaluateSAHSplits(start, end, 1, res);
 
             // Sort by Z axis
             objectsIdx.subList(start, end).sort((a, b) ->
@@ -143,7 +141,7 @@ public class Scene {
                     objects.get(b).getBox().getCentroid().Z()
                 )
             );
-            evaluateSAHSplits(start, end, 2, res, lock);
+            evaluateSAHSplits(start, end, 2, res);
 
             // Sort one final time by the best axis
             if(res.candidateAxis == 0)
@@ -179,26 +177,29 @@ public class Scene {
         return nodeIdx;
     }
 
-    private void evaluateSAHSplits(int start, int end, int axis, Result res, ReentrantLock lock) {
-        ArrayList<Thread> threads = new ArrayList<>();
-        for (int i = start + 1; i < end; i++) {
-            final int idx = i;
-            threads.add(Thread.ofVirtual().start(() -> {
-                AABB left = constructAABB(start, idx);
-                AABB right = constructAABB(idx, end);
-                double costTemp = left.getSurfaceArea() * (idx - start)
-                                + right.getSurfaceArea() * (end - idx);
-                lock.lock();
-                try {
-                    res.compareToOther(costTemp, idx, axis);
-                } finally {
-                    lock.unlock();
-                }
-            }));
+    private void evaluateSAHSplits(int start, int end, int axis, Result res) {
+        int n = end - start;
+
+        AABB[] leftPrefix = new AABB[n];
+        AABB first = objects.get(objectsIdx.get(start)).getBox();
+        leftPrefix[0] = new AABB(first.min(), first.max());
+        for (int i = 1; i < n; i++) {
+            leftPrefix[i] = new AABB(leftPrefix[i - 1].min(), leftPrefix[i - 1].max());
+            leftPrefix[i].extendToAABB(objects.get(objectsIdx.get(start + i)).getBox());
         }
-        for (Thread t : threads) {
-            try { t.join(); }
-            catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+
+        AABB[] rightPrefix = new AABB[n];
+        AABB last = objects.get(objectsIdx.get(end - 1)).getBox();
+        rightPrefix[n - 1] = new AABB(last.min(), last.max());
+        for (int i = n - 2; i >= 0; i--) {
+            rightPrefix[i] = new AABB(rightPrefix[i + 1].min(), rightPrefix[i + 1].max());
+            rightPrefix[i].extendToAABB(objects.get(objectsIdx.get(start + i)).getBox());
+        }
+
+        for (int k = 1; k < n; k++) {
+            double costTemp = leftPrefix[k - 1].getSurfaceArea() * k
+                            + rightPrefix[k].getSurfaceArea() * (n - k);
+            res.compareToOther(costTemp, start + k, axis);
         }
     }
 

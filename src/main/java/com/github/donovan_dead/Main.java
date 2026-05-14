@@ -56,10 +56,10 @@ public class Main {
             } else {
                 
                 obj.translate(
-                    new Vector3(180, 0, -170)
+                    new Vector3(20, -20, -10)
                 );
 
-                obj.scale(10);
+                obj.scale(1);
             }
 
             obj.constructBVH();
@@ -120,10 +120,10 @@ public class Main {
         int count = 0;
         ArrayList<BaseLightSource> lights = scene.getLights();
         
-        // for(double t = 0; t < 120 * 6; t+=dt){
+        // for(double t = 0; t < 120 * 3; t+=dt){
         for(double t = 0; t < 1; t+=dt){
             long start = System.nanoTime();
-            if(t < 240){
+            if(t < 330){
                 if (lights.get(0) instanceof LightSource) {
                     LightSource light = (LightSource) lights.get(0);
                     lights.set(0,

@@ -19,7 +19,7 @@ public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960 * 2;
+    public static int width = 1960 * 4; // 1080 * 4
     public static double aspect_ratio = 16.0 / 9.0;
 
     public Raytracer(Camera cam, Scene scene) {
