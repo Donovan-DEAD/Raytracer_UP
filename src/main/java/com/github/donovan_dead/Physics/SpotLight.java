@@ -3,6 +3,7 @@ package com.github.donovan_dead.Physics;
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
+import com.github.donovan_dead.Objects.Structures.Material;
 
 public class SpotLight extends BaseLightSource {
     private final Vector3 origin;
@@ -33,8 +34,8 @@ public class SpotLight extends BaseLightSource {
 
 
     @Override
-    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Vector3 baseColor) {
-        Vector3 vecToLight     = origin.subtract(position);
+    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 origin) {
+        Vector3 vecToLight     = this.origin.subtract(position);
         Vector3 vecToLightNorm = vecToLight.normalize();
 
         // angle between spotlight direction and ray from light to surface
@@ -47,11 +48,27 @@ public class SpotLight extends BaseLightSource {
             : Math.pow((cosTheta - cosOuter) / (cosInner - cosOuter), 2);
 
         double diffuse = Math.max(0, Utils.dotProduct(vecToLightNorm, normal.normalize()));
+        double atenuation = intensity / Math.pow(vecToLight.getMagnitude(), 2);
 
-        return Vector3.builder()
-            .X(baseColor.X() * lightColor.R() * intensity / Math.pow(vecToLight.getMagnitude(), 2) * diffuse * spotFactor)
-            .Y(baseColor.Y() * lightColor.G() * intensity / Math.pow(vecToLight.getMagnitude(), 2) * diffuse * spotFactor)
-            .Z(baseColor.Z() * lightColor.B() * intensity / Math.pow(vecToLight.getMagnitude(), 2) * diffuse * spotFactor)
+        Vector3 diff = Vector3.builder()
+            .X(material.getKd().X() * lightColor.R() * atenuation * diffuse * spotFactor)
+            .Y(material.getKd().Y() * lightColor.G() * atenuation * diffuse * spotFactor)
+            .Z(material.getKd().Z() * lightColor.B() * atenuation * diffuse * spotFactor)
             .build();
+
+        Vector3 reflection = normal.scale(2 * diffuse).subtract(vecToLightNorm.scale(-1)).normalize();
+        Vector3 viewDir = origin.subtract(position).normalize();
+        double specFactor = Math.pow(
+            Math.max(0, Utils.dotProduct(reflection, viewDir)),
+            material.getNs()
+        );
+
+        Vector3 spec = Vector3.builder()
+            .X(material.getKs().X() * lightColor.R() * atenuation * specFactor * spotFactor)
+            .Y(material.getKs().Y() * lightColor.G() * atenuation * specFactor * spotFactor)
+            .Z(material.getKs().Z() * lightColor.B() * atenuation * specFactor * spotFactor)
+            .build();
+
+        return diff.add(spec);
     }
 }

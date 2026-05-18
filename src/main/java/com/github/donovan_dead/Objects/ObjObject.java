@@ -2,12 +2,12 @@ package com.github.donovan_dead.Objects;
 
 import java.util.ArrayList;
 
-import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.BarycentricCoordinates;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.AABB;
 import com.github.donovan_dead.Objects.Structures.BVHNode;
+import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
 
@@ -18,13 +18,15 @@ public class ObjObject extends Object3D {
     
     ArrayList<Vector3> vertexList = new ArrayList<>();
     ArrayList<Integer> vertIdxList = new ArrayList<>();
-    
+
     ArrayList<Vector3> normalList = new ArrayList<>();
     ArrayList<Integer> normalIdxList = new ArrayList<>();
 
+    ArrayList<Material> materialList = new ArrayList<>();
+    ArrayList<Integer> materialIdxList = new ArrayList<>();
+
     public ArrayList<BVHNode> BVHTree;
     private ArrayList<Integer> auxiliarIdxList;
-    RGBColor color;
 
     public Intersection calculateIntersection(Ray ray){
         // System.out.println(BVHTree.isEmpty());
@@ -88,9 +90,15 @@ public class ObjObject extends Object3D {
                 }
 
                 if(ans == null){
-                    ans = new Intersection(normal, t, color);
+                    ans = new Intersection(normal, t, 
+                        materialList.get(
+                            materialIdxList.get(i)
+                        ));
                 } else if (ans.t() > t){
-                    ans = new Intersection(normal, t, color);
+                    ans = new Intersection(normal, t, 
+                        materialList.get(
+                            materialIdxList.get(i)
+                        ));
                 }
             }
             return ans;
@@ -121,6 +129,48 @@ public class ObjObject extends Object3D {
                 vertexList.get(i).subtract(centroid).scale(scale).add(centroid)
             );
         }
+    }  
+
+    public void rotateX(double angleRadians){
+        Vector3 centroid = new Vector3(0,0,0);
+        
+        for(Vector3 vertex : vertexList) centroid = centroid.add(vertex);
+        centroid = centroid.scale(1.0 / (double)vertexList.size());
+        
+        for(int i = 0; i < vertexList.size(); i++){
+            vertexList.set(
+                i, 
+                vertexList.get(i).subtract(centroid).rotateX(angleRadians).add(centroid)
+            );
+        }
+    }
+
+    public void rotateY(double angleRadians){
+        Vector3 centroid = new Vector3(0,0,0);
+        
+        for(Vector3 vertex : vertexList) centroid = centroid.add(vertex);
+        centroid = centroid.scale(1.0 / (double)vertexList.size());
+        
+        for(int i = 0; i < vertexList.size(); i++){
+            vertexList.set(
+                i, 
+                vertexList.get(i).subtract(centroid).rotateY(angleRadians).add(centroid)
+            );
+        }
+    }
+
+    public void rotateZ(double angleRadians){
+        Vector3 centroid = new Vector3(0,0,0);
+        
+        for(Vector3 vertex : vertexList) centroid = centroid.add(vertex);
+        centroid = centroid.scale(1.0 / (double)vertexList.size());
+        
+        for(int i = 0; i < vertexList.size(); i++){
+            vertexList.set(
+                i, 
+                vertexList.get(i).subtract(centroid).rotateZ(angleRadians).add(centroid)
+            );
+        }
     }
     
     public void translate(Vector3 v){
@@ -143,10 +193,11 @@ public class ObjObject extends Object3D {
         recursiveBVHConstruction(0, auxiliarIdxList.size());
 
         // Reorganize the triangules in the best order for the BVH
-        
-        // Arrays for the new positioins of the normals and vertexes 
+
+        // Arrays for the new positioins of the normals, vertexes and materials
         ArrayList<Integer> newIndexes = new ArrayList<>();
         ArrayList<Integer> newNormalIndexes = new ArrayList<>();
+        ArrayList<Integer> newMaterialIndexes = new ArrayList<>();
 
         for(Integer idx : auxiliarIdxList){
             newIndexes.add(
@@ -168,10 +219,15 @@ public class ObjObject extends Object3D {
             newNormalIndexes.add(
                 normalIdxList.get(idx * 3 + 2)
             );
+
+            newMaterialIndexes.add(
+                materialIdxList.get(idx)
+            );
         }
 
         vertIdxList = newIndexes;
         normalIdxList = newNormalIndexes;
+        materialIdxList = newMaterialIndexes;
     }
 
     private int recursiveBVHConstruction(int start, int end){
@@ -361,10 +417,12 @@ public class ObjObject extends Object3D {
     public static class Builder {
         ArrayList<Vector3> vertex;
         ArrayList<Integer> vertIdxList;
-            
+
         ArrayList<Vector3> normalList = new ArrayList<>();
         ArrayList<Integer> normalIdxList = new ArrayList<>();
-        RGBColor color;
+
+        ArrayList<Material> materialList = new ArrayList<>();
+        ArrayList<Integer> materialIdxList = new ArrayList<>();
 
         public Builder vertexList(ArrayList<Vector3> v){
             this.vertex = v;
@@ -386,9 +444,13 @@ public class ObjObject extends Object3D {
             return this;
         }
 
+        public Builder materialList(ArrayList<Material> mtlList){
+            this.materialList = mtlList;
+            return this;
+        }
 
-        public Builder  color( RGBColor color){
-            this.color = color;
+        public Builder materialIdxList(ArrayList<Integer> mtlIdxList){
+            this.materialIdxList = mtlIdxList;
             return this;
         }
 
@@ -401,7 +463,8 @@ public class ObjObject extends Object3D {
             object.normalList = this.normalList;
             object.normalIdxList = this.normalIdxList;
 
-            object.color = this.color;
+            object.materialList = this.materialList;
+            object.materialIdxList = this.materialIdxList;
 
             return object;
         }

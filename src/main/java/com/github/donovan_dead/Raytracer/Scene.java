@@ -6,6 +6,7 @@ import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Objects.Object3D;
 import com.github.donovan_dead.Objects.Structures.AABB;
 import com.github.donovan_dead.Objects.Structures.BVHNode;
+import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Physics.BaseLightSource;
 import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
@@ -18,7 +19,7 @@ public class Scene {
 
     public ArrayList<BVHNode> BVHTree;
 
-    public RGBColor background = new RGBColor(0,0,0);
+    public Material background = Material.getBlackMaterial();
 
     public void addObject(Object3D o){
         objects.add(o);

@@ -5,16 +5,19 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantLock;
 
+import com.github.donovan_dead.Math.UV;
 import com.github.donovan_dead.Math.Utils;
 
-import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.ObjObject;
+import com.github.donovan_dead.Objects.Structures.Material;
+import com.github.donovan_dead.Objects.Structures.Texture;
 
 public class ObjReader {
-    public static RGBColor defaultColor = new RGBColor(255,255,255);
 
     public static ObjObject ReadObjectFile(File file) throws Exception {
 
@@ -26,10 +29,18 @@ public class ObjReader {
         ArrayList<Integer> vertIdxList = new ArrayList<>();
         ArrayList<Integer> smoothingGroupList = new ArrayList<>();
 
-        ArrayList<double[]> textureList = new ArrayList<>();
+        ArrayList<UV> uvList = new ArrayList<>();
+        ArrayList<Integer> uvIdxList = new ArrayList<>();
 
         ArrayList<Vector3> normalList = new ArrayList<>();
         ArrayList<Integer> normalIdxList = new ArrayList<>();
+
+        ArrayList<Material> materialList = new ArrayList<>();
+        ArrayList<Integer> materialIdxList = new ArrayList<>();
+
+        TreeMap<String, Integer> nameToIdx = new TreeMap<>();
+        materialList.add(Material.getDefaultMaterial());
+        int currentMaterialIdx = 0;
 
         TreeSet<Integer> smoothingGroupSet = new TreeSet<>();
         int currentSmoothingGroup = 0;
@@ -50,12 +61,12 @@ public class ObjReader {
                     String groupStr = tokenizer.nextToken();
                     if(groupStr.equals("off") || groupStr.equals("0")){
                         currentSmoothingGroup = 0;
-                        System.out.println("Smoothing group OFF");
+                        // System.out.println("Smoothing group OFF");
                     } else {
                         try {
                             currentSmoothingGroup = Integer.parseInt(groupStr);
                             smoothingGroupSet.add(currentSmoothingGroup);
-                            System.out.println("Smoothing group: " + currentSmoothingGroup);
+                            // System.out.println("Smoothing group: " + currentSmoothingGroup);
                         } catch(NumberFormatException e){
                             currentSmoothingGroup = 0;
                         }
@@ -78,12 +89,19 @@ public class ObjReader {
                 case "f":
                     ArrayList<Integer> tempVertList = new ArrayList<>();
                     ArrayList<Integer> tempNormVertList = new ArrayList<>();
+                    ArrayList<Integer> tempUVList = new ArrayList<>();
 
                     while (tokenizer.hasMoreTokens()) {
                         String token =  tokenizer.nextToken();
                         String[] numbers = token.split("/");
 
                         tempVertList.add(Integer.parseInt(numbers[0])-1);
+
+                        Integer uv = -1;
+                        if (numbers.length > 1 && !numbers[1].isEmpty()){
+                            uv = Integer.parseInt(numbers[1]) - 1;
+                        }
+                        tempUVList.add(uv);
 
                         Integer norm = -1;
                         if (numbers.length > 2 && !numbers[2].isEmpty() && currentSmoothingGroup != 0) {
@@ -94,27 +112,35 @@ public class ObjReader {
 
                     if(tempVertList.size() <= 3) {
                         vertIdxList.addAll(tempVertList);
+                        uvIdxList.addAll(tempUVList);
                         normalIdxList.addAll(tempNormVertList);
                         for(int i = 0; i < tempVertList.size(); i++){
                             smoothingGroupList.add(currentSmoothingGroup);
                         }
+                        materialIdxList.add(currentMaterialIdx);
                     }
                     else {
                         Integer v0 = tempVertList.get(0);
                         Integer n0 = tempNormVertList.get(0);
+                        Integer uv0 = tempUVList.get(0);
 
                         for(int i = 1; i < tempVertList.size() - 1; i++){
                             vertIdxList.add(v0);
                             normalIdxList.add(n0);
+                            uvIdxList.add(uv0);
                             smoothingGroupList.add(currentSmoothingGroup);
 
                             vertIdxList.add(tempVertList.get(i));
                             normalIdxList.add(tempNormVertList.get(i));
+                            tempUVList.add(tempUVList.get(i));
                             smoothingGroupList.add(currentSmoothingGroup);
 
                             vertIdxList.add( tempVertList.get(i+1));
                             normalIdxList.add(tempNormVertList.get(i+1));
+                            tempUVList.add(tempUVList.get(i + 1));
                             smoothingGroupList.add(currentSmoothingGroup);
+
+                            materialIdxList.add(currentMaterialIdx);
                         }
                     }
 
@@ -129,13 +155,40 @@ public class ObjReader {
                     );
                     break;
                 case "vt":
-                    textureList.add(
-                        new double[]{
+                    uvList.add(
+                        new UV(
                             Double.parseDouble(tokenizer.nextToken()),
                             Double.parseDouble(tokenizer.nextToken())
-                        }
+                        )
                     );
                     break;
+                
+                case "mtllib":
+                    if(tokenizer.hasMoreTokens()) {
+                        String mtlFileName = tokenizer.nextToken();
+                        try {
+                            File mtlFile = new File(file.getParent(), mtlFileName);
+                            if(mtlFile.exists()) {
+                                MtlReader.MtlReaderResult mtlResult = MtlReader.ReadMtlFile(mtlFile);
+                                materialList = mtlResult.getMtlList();
+                                nameToIdx = mtlResult.getNameToIdx();
+                                currentMaterialIdx = 0;
+                            }
+                        } catch(Exception e) {
+                            System.err.println("Error cargando archivo de materiales: " + e.getMessage());
+                        }
+                    }
+                    break;
+
+                case "usemtl":
+                case "useMtl":
+                    if(tokenizer.hasMoreTokens()) {
+                        String materialName = tokenizer.nextToken();
+                        Integer idx = nameToIdx.get(materialName);
+                        currentMaterialIdx = (idx != null) ? idx : 0;
+                    }
+                    break;
+
                 default:
                     break;
             }
@@ -143,70 +196,91 @@ public class ObjReader {
         }
         fileReader.close();
 
+        ReentrantLock lock = new ReentrantLock();
+        ArrayList<Thread> threads = new ArrayList<>();
+
         for(Integer smoothGroup : smoothingGroupSet){
-            TreeSet<Integer> vertexIndicesInGroup = new TreeSet<>();
-
-            for(int i = 0; i < smoothingGroupList.size(); i += 3){
-                if(
-                    smoothingGroupList.get(i).equals(smoothGroup) &&
-                    smoothingGroupList.get(i + 1).equals(smoothGroup) &&
-                    smoothingGroupList.get(i + 2).equals(smoothGroup)
-                )   {
-                        vertexIndicesInGroup.add(
-                            vertIdxList.get(i)
-                        );
-                        vertexIndicesInGroup.add(
-                            vertIdxList.get(i + 1)
-                        );
-                        vertexIndicesInGroup.add(
-                            vertIdxList.get(i + 2)
-                        );
-                    }
-
-            }
-            for(Integer vertIdx : vertexIndicesInGroup){
-                Vector3 normalMean = new Vector3(0, 0, 0);
-                int triangleCount = 0;
+            Thread t = Thread.ofVirtual().start(() -> {
+                TreeSet<Integer> vertexIndicesInGroup = new TreeSet<>();
 
                 for(int i = 0; i < smoothingGroupList.size(); i += 3){
-                    if(i + 2 < smoothingGroupList.size()){
+                    if(
+                        smoothingGroupList.get(i).equals(smoothGroup) &&
+                        smoothingGroupList.get(i + 1).equals(smoothGroup) &&
+                        smoothingGroupList.get(i + 2).equals(smoothGroup)
+                    ){
+                        vertexIndicesInGroup.add(vertIdxList.get(i));
+                        vertexIndicesInGroup.add(vertIdxList.get(i + 1));
+                        vertexIndicesInGroup.add(vertIdxList.get(i + 2));
+                    }
+                }
+
+                for(Integer vertIdx : vertexIndicesInGroup){
+                    boolean hasPreDefinedNormal = false;
+                    for(int i = 0; i < smoothingGroupList.size(); i++){
                         if(smoothingGroupList.get(i).equals(smoothGroup) &&
-                           smoothingGroupList.get(i + 1).equals(smoothGroup) &&
-                           smoothingGroupList.get(i + 2).equals(smoothGroup)){
+                           vertIdxList.get(i).equals(vertIdx) &&
+                           normalIdxList.get(i) != -1){
+                            hasPreDefinedNormal = true;
+                            break;
+                        }
+                    }
+                    if(hasPreDefinedNormal) continue;
 
-                            Integer v0Idx = vertIdxList.get(i);
-                            Integer v1Idx = vertIdxList.get(i + 1);
-                            Integer v2Idx = vertIdxList.get(i + 2);
+                    Vector3 normalMean = new Vector3(0, 0, 0);
+                    int triangleCount = 0;
 
-                            if(v0Idx.equals(vertIdx) || v1Idx.equals(vertIdx) || v2Idx.equals(vertIdx)){
-                                Vector3 v0 = vertexList.get(v0Idx);
-                                Vector3 v1 = vertexList.get(v1Idx);
-                                Vector3 v2 = vertexList.get(v2Idx);
+                    for(int i = 0; i < smoothingGroupList.size(); i += 3){
+                        if(i + 2 < smoothingGroupList.size()){
+                            if(smoothingGroupList.get(i).equals(smoothGroup) &&
+                               smoothingGroupList.get(i + 1).equals(smoothGroup) &&
+                               smoothingGroupList.get(i + 2).equals(smoothGroup)){
 
-                                Vector3 edge1 = v1.subtract(v0);
-                                Vector3 edge2 = v2.subtract(v0);
-                                Vector3 triangleNormal = Utils.crossProduct(edge1, edge2).normalize();
+                                Integer v0Idx = vertIdxList.get(i);
+                                Integer v1Idx = vertIdxList.get(i + 1);
+                                Integer v2Idx = vertIdxList.get(i + 2);
 
-                                normalMean = normalMean.add(triangleNormal);
-                                triangleCount++;
+                                if(v0Idx.equals(vertIdx) || v1Idx.equals(vertIdx) || v2Idx.equals(vertIdx)){
+                                    Vector3 v0 = vertexList.get(v0Idx);
+                                    Vector3 v1 = vertexList.get(v1Idx);
+                                    Vector3 v2 = vertexList.get(v2Idx);
+
+                                    Vector3 edge1 = v1.subtract(v0);
+                                    Vector3 edge2 = v2.subtract(v0);
+                                    Vector3 triangleNormal = Utils.crossProduct(edge1, edge2).normalize();
+
+                                    normalMean = normalMean.add(triangleNormal);
+                                    triangleCount++;
+                                }
                             }
                         }
                     }
-                }
 
-                if(triangleCount > 0){
-                    normalMean = normalMean.scale(1.0 / triangleCount);
-                    int normalIndex = normalList.size();
-                    normalList.add(normalMean);
+                    if(triangleCount > 0){
+                        normalMean = normalMean.scale(1.0 / triangleCount);
 
-                    for(int i = 0; i < smoothingGroupList.size(); i++){
-                        if(smoothingGroupList.get(i).equals(smoothGroup) &&
-                           vertIdxList.get(i).equals(vertIdx)){
-                            normalIdxList.set(i, normalIndex);
+                        lock.lock();
+                        try {
+                            int normalIndex = normalList.size();
+                            normalList.add(normalMean);
+
+                            for(int i = 0; i < smoothingGroupList.size(); i++){
+                                if(smoothingGroupList.get(i).equals(smoothGroup) &&
+                                   vertIdxList.get(i).equals(vertIdx)){
+                                    normalIdxList.set(i, normalIndex);
+                                }
+                            }
+                        } finally {
+                            lock.unlock();
                         }
                     }
                 }
-            }
+            });
+            threads.add(t);
+        }
+
+        for(Thread t : threads){
+            t.join();
         }
 
         return ObjObject.builder()
@@ -214,7 +288,8 @@ public class ObjReader {
             .vertexList(vertexList)
             .normalList(normalList)
             .normalIdxList(normalIdxList)
-            .color(defaultColor)
+            .materialList(materialList)
+            .materialIdxList(materialIdxList)
             .build();
     }
 

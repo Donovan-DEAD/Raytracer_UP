@@ -1,9 +1,9 @@
 package com.github.donovan_dead.Objects;
 
-import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.AABB;
+import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
 
@@ -13,13 +13,11 @@ public class Triangule extends Object3D {
     private Vector3 v0;
     private Vector3 v1;
     private Vector3 v2;
-    private RGBColor color;
 
-    public Triangule(Vector3 a, Vector3 b, Vector3 c, RGBColor color) {
+    public Triangule(Vector3 a, Vector3 b, Vector3 c) {
         this.v0 = a;
         this.v1 = b;
         this.v2 = c;
-        this.color = color;
     }
 
     public Intersection calculateIntersection(Ray ray) {
@@ -47,7 +45,7 @@ public class Triangule extends Object3D {
         if (t < EPSILON) return null;
 
         Vector3 normal = Utils.crossProduct(edge1, edge2).normalize();
-        return new Intersection(normal, t, color);
+        return new Intersection(normal, t, Material.getDefaultMaterial());
     }
 
     public void translate(Vector3 v) {

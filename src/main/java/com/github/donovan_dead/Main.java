@@ -7,6 +7,7 @@ import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.ObjObject;
 import com.github.donovan_dead.Objects.Plane;
+import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Physics.BaseLightSource;
 import com.github.donovan_dead.Physics.LightSource;
 import com.github.donovan_dead.Physics.SpotLight;
@@ -42,24 +43,26 @@ public class Main {
         for(ObjObject obj : list){
             if(count == 1){
                 obj.translate(
-                    new Vector3(4, 0, 0)
+                    new Vector3(6, 0, 0)
                 );
                 
                 obj.scale(1.1);
             }
             else if(count == 0){
                 obj.translate(
-                    new Vector3(-4, 0, 0)
+                    new Vector3(-6, 0, 0)
                 );
+
+                obj.rotateX(Math.toRadians(50));
 
                 obj.scale(1.1);
             } else {
                 
                 obj.translate(
-                    new Vector3(20, -20, -10)
+                    new Vector3(20, 0, -10)
                 );
-
-                obj.scale(1);
+                obj.rotateY(Math.toRadians(150));
+                obj.scale(3);
             }
 
             obj.constructBVH();
@@ -83,11 +86,17 @@ public class Main {
         if(objList == null) throw new Exception("No objects where found");
         for(ObjObject obj : objList) scene.addObject(obj);
 
+        Material.builder().clean();
         scene.addObject(
             new Plane(
                 new Vector3( 0, 1,0 ), 
                 new Vector3(0, -20, 0), 
-                new RGBColor(122, 122, 122)
+                Material
+                    .builder()
+                    .fromVector(
+                        new Vector3(0.5,0.2,0.5)
+                    )
+                    .build()
             )
         );
 
@@ -96,18 +105,24 @@ public class Main {
         System.out.println("Top level BVH finished");
 
         scene.addLightSource(new LightSource(
-            new Vector3(-50, 50, -3),
-            new RGBColor(1, 1, 1),
-            0.6
+            new Vector3(20, 30, 20),
+            new RGBColor(255, 255, 255),
+            1.5
+        ));
+
+        scene.addLightSource(new LightSource(
+            new Vector3(-15, 20, 5),
+            new RGBColor(180, 200, 220),
+            1.5
         ));
 
         scene.addLightSource(new SpotLight(
-            new Vector3(0, 100, -2),
-            new Vector3(0, -1, 0),
-            new RGBColor(0.9, 0.9, 0.2),
-            5000,
-            Math.toRadians(20),
-            Math.toRadians(35)
+            new Vector3(0, 50, 15),
+            new Vector3(0, -1, -0.3),
+            new RGBColor(255, 255, 240),
+            10,
+            Math.toRadians(15),
+            Math.toRadians(25)
         ));
 
         Raytracer raytracer = new Raytracer(cam, scene);
@@ -120,7 +135,7 @@ public class Main {
         int count = 0;
         ArrayList<BaseLightSource> lights = scene.getLights();
         
-        // for(double t = 0; t < 120 * 3; t+=dt){
+        // for(double t = 0; t < 120 * 6; t+=dt){
         for(double t = 0; t < 1; t+=dt){
             long start = System.nanoTime();
             if(t < 330){

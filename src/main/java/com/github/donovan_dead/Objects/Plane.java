@@ -1,9 +1,9 @@
 package com.github.donovan_dead.Objects;
 
-import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.AABB;
+import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
 
@@ -11,15 +11,16 @@ public class Plane extends Object3D {
     
     private Vector3 normal;
     private Vector3 origin;
-    private RGBColor color;
 
-    public Plane(Vector3 n, Vector3 o, RGBColor color){
+    private Material color;
+
+    public Plane(Vector3 n, Vector3 o, Material m){
         this.normal = n.normalize();
         this.origin = o;
-        this.color = color;
+        this.color = m;
     }
 
-    public void setColor(RGBColor c){ this.color = c; }
+    public void setColor(Material m){ this.color = m; }
 
     public void translate(Vector3 v) {
         origin = origin.add(v);

@@ -1,21 +1,19 @@
 package com.github.donovan_dead.Objects;
 
-import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.AABB;
+import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
 
 public class Sphere extends Object3D{
     private Vector3 center;
     private double radius;
-    private RGBColor color;
 
-    public Sphere(Vector3 c, double r, RGBColor color){
+    public Sphere(Vector3 c, double r){
         this.center = c;
         this.radius = r;
-        this.color = color;
     }
 
     public void translate(Vector3 v) {
@@ -48,7 +46,7 @@ public class Sphere extends Object3D{
         return new Intersection(
             Utils.diffVector3(ray.getPos(t), center).normalize(),
             t,
-            color
+            Material.getDefaultMaterial()
         );
     }
 }

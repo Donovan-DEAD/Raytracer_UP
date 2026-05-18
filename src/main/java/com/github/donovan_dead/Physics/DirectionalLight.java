@@ -2,6 +2,7 @@ package com.github.donovan_dead.Physics;
 
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.Vector3;
+import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Math.Utils;
 
 public class DirectionalLight extends BaseLightSource {
@@ -35,20 +36,29 @@ public class DirectionalLight extends BaseLightSource {
     }
 
     @Override
-    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Vector3 baseColor) {
+    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 origin){
         Vector3 vecToLight = direction;
         double resultDot = Math.max(0, Utils.dotProduct(vecToLight, normal.normalize()));
 
-        Vector3 scaledColor = Vector3.builder()
-            .X(lightColor.R() * intensity)
-            .Y(lightColor.G() * intensity)
-            .Z(lightColor.B() * intensity)
+        Vector3 diff = Vector3.builder()
+            .X(material.getKd().X() * lightColor.R() * intensity * resultDot)
+            .Y(material.getKd().Y() * lightColor.G() * intensity * resultDot)
+            .Z(material.getKd().Z() * lightColor.B() * intensity * resultDot)
             .build();
 
-        return Vector3.builder()
-            .X(baseColor.X() * scaledColor.X() * resultDot)
-            .Y(baseColor.Y() * scaledColor.Y() * resultDot)
-            .Z(baseColor.Z() * scaledColor.Z() * resultDot)
+        Vector3 reflection = normal.scale(2 * resultDot).subtract(vecToLight.scale(-1)).normalize();
+        Vector3 viewDir = origin.subtract(position).normalize();
+        double specFactor = Math.pow(
+            Math.max(0, Utils.dotProduct(reflection, viewDir)),
+            material.getNs()
+        );
+
+        Vector3 spec = Vector3.builder()
+            .X(material.getKs().X() * lightColor.R() * intensity * specFactor)
+            .Y(material.getKs().Y() * lightColor.G() * intensity * specFactor)
+            .Z(material.getKs().Z() * lightColor.B() * intensity * specFactor)
             .build();
+
+        return diff.add(spec);
     }
 }
