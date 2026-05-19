@@ -1,6 +1,7 @@
 package com.github.donovan_dead.Physics;
 
 import com.github.donovan_dead.Colors.RGBColor;
+import com.github.donovan_dead.Math.UV;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.Material;
 import com.github.donovan_dead.Math.Utils;
@@ -36,7 +37,7 @@ public class DirectionalLight extends BaseLightSource {
     }
 
     @Override
-    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 origin){
+    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 origin, UV uv){
         Vector3 vecToLight = direction;
         double resultDot = Math.max(0, Utils.dotProduct(vecToLight, normal.normalize()));
 

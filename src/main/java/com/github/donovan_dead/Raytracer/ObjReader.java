@@ -15,12 +15,12 @@ import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.ObjObject;
 import com.github.donovan_dead.Objects.Structures.Material;
-import com.github.donovan_dead.Objects.Structures.Texture;
 
 public class ObjReader {
 
     public static ObjObject ReadObjectFile(File file) throws Exception {
-
+        long count_no_valid = 0;
+        long count_valid = 0;
         if(!file.exists() || file.isDirectory() || !file.getName().endsWith(".obj")) throw new Exception("The file doesn't exist or either is a directory or is the incorrect extension.");
 
         BufferedReader fileReader = new BufferedReader(new FileReader(file));
@@ -99,7 +99,10 @@ public class ObjReader {
 
                         Integer uv = -1;
                         if (numbers.length > 1 && !numbers[1].isEmpty()){
+                            count_valid += 1;
                             uv = Integer.parseInt(numbers[1]) - 1;
+                        } else {
+                            count_no_valid += 1;
                         }
                         tempUVList.add(uv);
 
@@ -110,7 +113,7 @@ public class ObjReader {
                         tempNormVertList.add(norm);
                     }
 
-                    if(tempVertList.size() <= 3) {
+                    if(tempVertList.size() == 3) {
                         vertIdxList.addAll(tempVertList);
                         uvIdxList.addAll(tempUVList);
                         normalIdxList.addAll(tempNormVertList);
@@ -132,12 +135,12 @@ public class ObjReader {
 
                             vertIdxList.add(tempVertList.get(i));
                             normalIdxList.add(tempNormVertList.get(i));
-                            tempUVList.add(tempUVList.get(i));
+                            uvIdxList.add(tempUVList.get(i));
                             smoothingGroupList.add(currentSmoothingGroup);
 
                             vertIdxList.add( tempVertList.get(i+1));
                             normalIdxList.add(tempNormVertList.get(i+1));
-                            tempUVList.add(tempUVList.get(i + 1));
+                            uvIdxList.add(tempUVList.get(i + 1));
                             smoothingGroupList.add(currentSmoothingGroup);
 
                             materialIdxList.add(currentMaterialIdx);
@@ -216,16 +219,16 @@ public class ObjReader {
                 }
 
                 for(Integer vertIdx : vertexIndicesInGroup){
-                    boolean hasPreDefinedNormal = false;
-                    for(int i = 0; i < smoothingGroupList.size(); i++){
-                        if(smoothingGroupList.get(i).equals(smoothGroup) &&
-                           vertIdxList.get(i).equals(vertIdx) &&
-                           normalIdxList.get(i) != -1){
-                            hasPreDefinedNormal = true;
-                            break;
-                        }
-                    }
-                    if(hasPreDefinedNormal) continue;
+                    // boolean hasPreDefinedNormal = false;
+                    // for(int i = 0; i < smoothingGroupList.size(); i++){
+                    //     if(smoothingGroupList.get(i).equals(smoothGroup) &&
+                    //        vertIdxList.get(i).equals(vertIdx) &&
+                    //        normalIdxList.get(i) != -1){
+                    //         hasPreDefinedNormal = true;
+                    //         break;
+                    //     }
+                    // }
+                    // if(hasPreDefinedNormal) continue;
 
                     Vector3 normalMean = new Vector3(0, 0, 0);
                     int triangleCount = 0;
@@ -283,11 +286,16 @@ public class ObjReader {
             t.join();
         }
 
+        System.out.println("No valid uv idxs: "+ count_no_valid);
+        System.out.println("Valid uv idxs: "+ count_valid);
+
         return ObjObject.builder()
             .vertexIdxList(vertIdxList)
             .vertexList(vertexList)
             .normalList(normalList)
             .normalIdxList(normalIdxList)
+            .uvList(uvList)
+            .uvIdxList(uvIdxList)
             .materialList(materialList)
             .materialIdxList(materialIdxList)
             .build();

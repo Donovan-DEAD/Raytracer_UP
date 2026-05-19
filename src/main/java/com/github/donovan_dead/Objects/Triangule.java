@@ -45,7 +45,7 @@ public class Triangule extends Object3D {
         if (t < EPSILON) return null;
 
         Vector3 normal = Utils.crossProduct(edge1, edge2).normalize();
-        return new Intersection(normal, t, Material.getDefaultMaterial());
+        return new Intersection(normal, t, Material.getDefaultMaterial(), null);
     }
 
     public void translate(Vector3 v) {

@@ -3,6 +3,7 @@ package com.github.donovan_dead.Objects;
 import java.util.ArrayList;
 
 import com.github.donovan_dead.Math.BarycentricCoordinates;
+import com.github.donovan_dead.Math.UV;
 import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.AABB;
@@ -21,6 +22,9 @@ public class ObjObject extends Object3D {
 
     ArrayList<Vector3> normalList = new ArrayList<>();
     ArrayList<Integer> normalIdxList = new ArrayList<>();
+
+    ArrayList<UV> uvList = new ArrayList<>();
+    ArrayList<Integer> uvIdxList = new ArrayList<>();
 
     ArrayList<Material> materialList = new ArrayList<>();
     ArrayList<Integer> materialIdxList = new ArrayList<>();
@@ -72,33 +76,49 @@ public class ObjObject extends Object3D {
 
                 if (t < EPSILON) continue;
 
+                BarycentricCoordinates b = Utils.calculateBarycentricCoordinates(ray.getPos(t), v0, v1, v2);
+
+                // UV independiente de las normales
+                UV uv;
+                if (uvIdxList.get(i * 3) != -1 && uvIdxList.get(i * 3 + 1) != -1 && uvIdxList.get(i * 3 + 2) != -1) {
+                    // System.out.println("Uv defined");
+                    UV uv0 = uvList.get(uvIdxList.get(i * 3));
+                    UV uv1 = uvList.get(uvIdxList.get(i * 3 + 1));
+                    UV uv2 = uvList.get(uvIdxList.get(i * 3 + 2));
+                    uv = new UV(
+                        uv0.getU() * b.alpha() + uv1.getU() * b.beta() + uv2.getU() * b.gamma(),
+                        uv0.getV() * b.alpha() + uv1.getV() * b.beta() + uv2.getV() * b.gamma()
+                    );
+                } else {
+                    // System.out.println("No uv defined");
+                    uv = new UV(0.5, 0.5);
+                }
+
+                // Normal: interpolar si hay definidas, cross product si no
                 Vector3 normal;
-                if (normalIdxList.get(i * 3) == -1 || normalIdxList.get(i * 3 + 1) == -1 || normalIdxList.get(i * 3 + 2) == -1)
+                if (normalIdxList.get(i * 3) == -1 || normalIdxList.get(i * 3 + 1) == -1 || normalIdxList.get(i * 3 + 2) == -1) {
                     normal = Utils.crossProduct(edge1, edge2).normalize();
-                else {
+                } else {
                     Vector3 n0 = normalList.get(normalIdxList.get(i * 3));
                     Vector3 n1 = normalList.get(normalIdxList.get(i * 3 + 1));
                     Vector3 n2 = normalList.get(normalIdxList.get(i * 3 + 2));
-
-                    BarycentricCoordinates b = Utils.calculateBarycentricCoordinates(ray.getPos(t), v0, v1, v2);
-
                     normal = Vector3.builder().X(0).Y(0).Z(0).build()
-                    .add(n0.scale(b.alpha()))
-                    .add(n1.scale(b.beta()))
-                    .add(n2.scale(b.gamma()))
-                    .normalize();
+                        .add(n0.scale(b.alpha()))
+                        .add(n1.scale(b.beta()))
+                        .add(n2.scale(b.gamma()))
+                        .normalize();
                 }
 
                 if(ans == null){
                     ans = new Intersection(normal, t, 
                         materialList.get(
                             materialIdxList.get(i)
-                        ));
+                        ), uv);
                 } else if (ans.t() > t){
                     ans = new Intersection(normal, t, 
                         materialList.get(
                             materialIdxList.get(i)
-                        ));
+                        ), uv);
                 }
             }
             return ans;
@@ -194,39 +214,31 @@ public class ObjObject extends Object3D {
 
         // Reorganize the triangules in the best order for the BVH
 
-        // Arrays for the new positioins of the normals, vertexes and materials
+        // Arrays for the new positioins of the normals, vertexes, uvs and materials
         ArrayList<Integer> newIndexes = new ArrayList<>();
         ArrayList<Integer> newNormalIndexes = new ArrayList<>();
+        ArrayList<Integer> newUvIndexes = new ArrayList<>();
         ArrayList<Integer> newMaterialIndexes = new ArrayList<>();
 
         for(Integer idx : auxiliarIdxList){
-            newIndexes.add(
-                vertIdxList.get(idx * 3)
-            );
-            newIndexes.add(
-                vertIdxList.get(idx * 3 + 1)
-            );
-            newIndexes.add(
-                vertIdxList.get(idx * 3 + 2)
-            );
+            newIndexes.add(vertIdxList.get(idx * 3));
+            newIndexes.add(vertIdxList.get(idx * 3 + 1));
+            newIndexes.add(vertIdxList.get(idx * 3 + 2));
 
-            newNormalIndexes.add(
-                normalIdxList.get(idx * 3)
-            );
-            newNormalIndexes.add(
-                normalIdxList.get(idx * 3 + 1)
-            );
-            newNormalIndexes.add(
-                normalIdxList.get(idx * 3 + 2)
-            );
+            newNormalIndexes.add(normalIdxList.get(idx * 3));
+            newNormalIndexes.add(normalIdxList.get(idx * 3 + 1));
+            newNormalIndexes.add(normalIdxList.get(idx * 3 + 2));
 
-            newMaterialIndexes.add(
-                materialIdxList.get(idx)
-            );
+            newUvIndexes.add(uvIdxList.get(idx * 3));
+            newUvIndexes.add(uvIdxList.get(idx * 3 + 1));
+            newUvIndexes.add(uvIdxList.get(idx * 3 + 2));
+
+            newMaterialIndexes.add(materialIdxList.get(idx));
         }
 
         vertIdxList = newIndexes;
         normalIdxList = newNormalIndexes;
+        uvIdxList = newUvIndexes;
         materialIdxList = newMaterialIndexes;
     }
 
@@ -421,6 +433,9 @@ public class ObjObject extends Object3D {
         ArrayList<Vector3> normalList = new ArrayList<>();
         ArrayList<Integer> normalIdxList = new ArrayList<>();
 
+        ArrayList<UV> uvList = new ArrayList<>();
+        ArrayList<Integer> uvIdxList = new ArrayList<>();
+
         ArrayList<Material> materialList = new ArrayList<>();
         ArrayList<Integer> materialIdxList = new ArrayList<>();
 
@@ -444,6 +459,16 @@ public class ObjObject extends Object3D {
             return this;
         }
 
+        public Builder uvList(ArrayList<UV> uvs){
+            this.uvList = uvs;
+            return this;
+        }
+
+        public Builder uvIdxList(ArrayList<Integer> uvIdxs){
+            this.uvIdxList = uvIdxs;
+            return this;
+        }
+
         public Builder materialList(ArrayList<Material> mtlList){
             this.materialList = mtlList;
             return this;
@@ -462,6 +487,9 @@ public class ObjObject extends Object3D {
 
             object.normalList = this.normalList;
             object.normalIdxList = this.normalIdxList;
+
+            object.uvList = this.uvList;
+            object.uvIdxList = this.uvIdxList;
 
             object.materialList = this.materialList;
             object.materialIdxList = this.materialIdxList;

@@ -48,7 +48,8 @@ public class Plane extends Object3D {
         return new Intersection(
             normal, 
             dot/dotDen, 
-            color
+            color,
+            null
         );
     }
 }

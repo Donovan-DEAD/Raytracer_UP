@@ -46,7 +46,8 @@ public class Sphere extends Object3D{
         return new Intersection(
             Utils.diffVector3(ray.getPos(t), center).normalize(),
             t,
-            Material.getDefaultMaterial()
+            Material.getDefaultMaterial(),
+            null
         );
     }
 }

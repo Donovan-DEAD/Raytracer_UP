@@ -23,7 +23,7 @@ public class Texture {
 
     public int getPixel(double u, double v) {
         int x = (int) (u * width);
-        int y = (int) (v * height);
+        int y = (int) ((1.0 - v) * height);
 
         x = Math.max(0, Math.min(x, width - 1));
         y = Math.max(0, Math.min(y, height - 1));
@@ -55,6 +55,7 @@ public class Texture {
 
         public Builder fromFile(String filePath) throws IOException {
             File file = new File(filePath);
+            System.out.println("[Texture] " + (file.exists() ? "FOUND" : "NOT FOUND") + ": " + file.getAbsolutePath());
             BufferedImage image = ImageIO.read(file);
 
             if (image == null) {

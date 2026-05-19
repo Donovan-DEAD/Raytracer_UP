@@ -59,10 +59,10 @@ public class Main {
             } else {
                 
                 obj.translate(
-                    new Vector3(20, 0, -10)
+                    new Vector3(20, 0, -5)
                 );
-                obj.rotateY(Math.toRadians(150));
-                obj.scale(3);
+                obj.rotateY(Math.toRadians(0));
+                obj.scale(90);
             }
 
             obj.constructBVH();
@@ -105,22 +105,22 @@ public class Main {
         System.out.println("Top level BVH finished");
 
         scene.addLightSource(new LightSource(
-            new Vector3(20, 30, 20),
+            new Vector3(20, 0, -80),
             new RGBColor(255, 255, 255),
-            1.5
+            3000
         ));
 
         scene.addLightSource(new LightSource(
-            new Vector3(-15, 20, 5),
+            new Vector3(0, 20, 5),
             new RGBColor(180, 200, 220),
-            1.5
+            1500
         ));
 
         scene.addLightSource(new SpotLight(
             new Vector3(0, 50, 15),
             new Vector3(0, -1, -0.3),
             new RGBColor(255, 255, 240),
-            10,
+            1000,
             Math.toRadians(15),
             Math.toRadians(25)
         ));
@@ -143,7 +143,7 @@ public class Main {
                     LightSource light = (LightSource) lights.get(0);
                     lights.set(0,
                         new LightSource(
-                            light.origin().add(new Vector3(dt * 1.5, 0, 0)),
+                            light.origin().add(new Vector3(dt /  2, 0, 0)),
                             light.lightColor(),
                             light.intensity()
                         )

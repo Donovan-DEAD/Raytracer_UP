@@ -19,6 +19,7 @@ public class Material {
     private Texture diffuseTexture;
     private Texture specularTexture;
     private Texture normalTexture;
+    private Texture nsTexture;
 
     private double opacity;
 
@@ -26,12 +27,14 @@ public class Material {
     private Vector3 Kd;
     private Vector3 Ks;
     private double Ns;
+    private double Ni;
 
     public Material() {
         this.Ka = new Vector3(0.05, 0.05, 0.05);
         this.Kd = new Vector3(0.4, 0.4, 0.4);
         this.Ks = new Vector3(0.9, 0.9, 0.9);
         this.Ns = 96.0;
+        this.Ni = 1.0;
         this.opacity = 1.0;
     }
 
@@ -75,6 +78,14 @@ public class Material {
         this.normalTexture = normalTexture;
     }
 
+    public Texture getNsTexture() {
+        return nsTexture;
+    }
+
+    public void setNsTexture(Texture nsTexture) {
+        this.nsTexture = nsTexture;
+    }
+
     public double getOpacity() {
         return opacity;
     }
@@ -115,6 +126,14 @@ public class Material {
         this.Ns = Ns;
     }
 
+    public double getNi() {
+        return Ni;
+    }
+
+    public void setNi(double Ni) {
+        this.Ni = Ni;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -124,11 +143,13 @@ public class Material {
         private Texture diffuseTexture;
         private Texture specularTexture;
         private Texture normalTexture;
+        private Texture nsTexture;
         private double opacity = 1.0;
         private Vector3 Ka = new Vector3(0.2, 0.2, 0.2);
         private Vector3 Kd = new Vector3(0.8, 0.8, 0.8);
         private Vector3 Ks = new Vector3(1.0, 1.0, 1.0);
         private double Ns = 32.0;
+        private double Ni = 1.0;
 
         public Builder fromVector(Vector3 color) {
             this.Ka = color.scale(0.2);
@@ -179,6 +200,16 @@ public class Material {
             return this;
         }
 
+        public Builder nsTexture(String filePath) throws IOException {
+            this.nsTexture = Texture.builder().fromFile(filePath).build();
+            return this;
+        }
+
+        public Builder nsTexture(Texture texture) {
+            this.nsTexture = texture;
+            return this;
+        }
+
         public Builder opacity(double opacity) {
             this.opacity = opacity;
             return this;
@@ -204,16 +235,23 @@ public class Material {
             return this;
         }
 
+        public Builder Ni(double Ni) {
+            this.Ni = Ni;
+            return this;
+        }
+
         public Builder clean() {
             this.ambientTexture = null;
             this.diffuseTexture = null;
             this.specularTexture = null;
             this.normalTexture = null;
+            this.nsTexture = null;
             this.opacity = 1.0;
             this.Ka = new Vector3(0.2, 0.2, 0.2);
             this.Kd = new Vector3(0.8, 0.8, 0.8);
             this.Ks = new Vector3(1.0, 1.0, 1.0);
             this.Ns = 32.0;
+            this.Ni = 1.0;
             return this;
         }
 
@@ -223,11 +261,13 @@ public class Material {
             material.setDiffuseTexture(this.diffuseTexture);
             material.setSpecularTexture(this.specularTexture);
             material.setNormalTexture(this.normalTexture);
+            material.setNsTexture(this.nsTexture);
             material.setOpacity(this.opacity);
             material.setKa(this.Ka);
             material.setKd(this.Kd);
             material.setKs(this.Ks);
             material.setNs(this.Ns);
+            material.setNi(this.Ni);
             return material;
         }
     }

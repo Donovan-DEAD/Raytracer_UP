@@ -20,7 +20,7 @@ public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960 * 2 ; // 1080 * 4
+    public static int width = 1960 * 4 / 4 ; // 1080 * 4
     public static double aspect_ratio = 16.0 / 9.0;
 
     public Raytracer(Camera cam, Scene scene) {
@@ -56,7 +56,8 @@ public class Raytracer {
 
                     Color color;
                     Material m = i.material();
-                    Vector3 finalColor = new Vector3(0, 0, 0);
+                    // Vector3 finalColor = m.getKa().scale(255.0);
+                    Vector3 finalColor = new Vector3(0,0,0);
 
                     Vector3 hitPoint  = r.getPos(i.t());
                     Vector3 hitNormal = i.normal();
@@ -68,16 +69,17 @@ public class Raytracer {
                             LightSource light = (LightSource) l;
                             lightContribution = hasAnObstacle(light.origin(), hitPoint, hitNormal)
                                 ? Vector3.Zero()
-                                : l.getLightContribution(hitPoint, hitNormal, m, r.origin());
+                                : l.getLightContribution(hitPoint, hitNormal, m, r.origin(), i.uv());
 
                         } else if (l instanceof SpotLight) {
+                            
                             SpotLight spotlight = (SpotLight) l;
                             lightContribution = hasAnObstacle(spotlight.origin(), hitPoint, hitNormal)
                                 ? Vector3.Zero()
-                                : l.getLightContribution(hitPoint, hitNormal, m, r.origin());
+                                : l.getLightContribution(hitPoint, hitNormal, m, r.origin(), i.uv());
 
                         } else {
-                            lightContribution = l.getLightContribution(hitPoint, hitNormal, m, r.origin());
+                            lightContribution = l.getLightContribution(hitPoint, hitNormal, m, r.origin(), i.uv());
                         }
 
                         finalColor = finalColor.add(lightContribution);
@@ -107,7 +109,7 @@ public class Raytracer {
         }
 
         try {
-            ImageIO.write(img, "jpg", outputFile);
+            ImageIO.write(img, "png", outputFile);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -115,7 +117,7 @@ public class Raytracer {
 
     private boolean hasAnObstacle(Vector3 lightOrigin, Vector3 hitPoint, Vector3 hitNormal) {
         Ray shadowRay = new Ray(
-            hitPoint.add(hitNormal.normalize().scale(1e-4)),
+            hitPoint.add(hitNormal.normalize().scale(1e-6)),
             lightOrigin.subtract(hitPoint).normalize()
         );
         Intersection shadowHit = scene.calculateIntersection(shadowRay);

@@ -23,6 +23,8 @@ public class MtlReader {
 
         mtlList.add(Material.getDefaultMaterial());
 
+        String baseDir = file.getParent();
+
         Material.Builder materialBuilder = Material.builder();
         String currentMaterialName = null;
         String line;
@@ -87,6 +89,12 @@ public class MtlReader {
                     }
                     break;
 
+                case "Ni":
+                    if (tokenizer.hasMoreTokens()) {
+                        materialBuilder.Ni(Double.parseDouble(tokenizer.nextToken()));
+                    }
+                    break;
+
                 case "d":
                 case "Tr":
                     if (tokenizer.hasMoreTokens()) {
@@ -97,7 +105,7 @@ public class MtlReader {
                 case "map_Ka":
                     if (tokenizer.hasMoreTokens()) {
                         try {
-                            materialBuilder.ambientTexture(tokenizer.nextToken());
+                            materialBuilder.ambientTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
                             System.err.println("Error cargando textura ambient: " + e.getMessage());
                         }
@@ -107,7 +115,7 @@ public class MtlReader {
                 case "map_Kd":
                     if (tokenizer.hasMoreTokens()) {
                         try {
-                            materialBuilder.diffuseTexture(tokenizer.nextToken());
+                            materialBuilder.diffuseTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
                             System.err.println("Error cargando textura diffuse: " + e.getMessage());
                         }
@@ -117,9 +125,19 @@ public class MtlReader {
                 case "map_Ks":
                     if (tokenizer.hasMoreTokens()) {
                         try {
-                            materialBuilder.specularTexture(tokenizer.nextToken());
+                            materialBuilder.specularTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
                             System.err.println("Error cargando textura specular: " + e.getMessage());
+                        }
+                    }
+                    break;
+
+                case "map_Ns":
+                    if (tokenizer.hasMoreTokens()) {
+                        try {
+                            materialBuilder.nsTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
+                        } catch (Exception e) {
+                            System.err.println("Error cargando textura Ns: " + e.getMessage());
                         }
                     }
                     break;
@@ -128,7 +146,7 @@ public class MtlReader {
                 case "bump":
                     if (tokenizer.hasMoreTokens()) {
                         try {
-                            materialBuilder.normalTexture(tokenizer.nextToken());
+                            materialBuilder.normalTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
                             System.err.println("Error cargando textura normal: " + e.getMessage());
                         }
