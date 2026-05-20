@@ -19,8 +19,6 @@ import com.github.donovan_dead.Objects.Structures.Material;
 public class ObjReader {
 
     public static ObjObject ReadObjectFile(File file) throws Exception {
-        long count_no_valid = 0;
-        long count_valid = 0;
         if(!file.exists() || file.isDirectory() || !file.getName().endsWith(".obj")) throw new Exception("The file doesn't exist or either is a directory or is the incorrect extension.");
 
         BufferedReader fileReader = new BufferedReader(new FileReader(file));
@@ -99,10 +97,7 @@ public class ObjReader {
 
                         Integer uv = -1;
                         if (numbers.length > 1 && !numbers[1].isEmpty()){
-                            count_valid += 1;
                             uv = Integer.parseInt(numbers[1]) - 1;
-                        } else {
-                            count_no_valid += 1;
                         }
                         tempUVList.add(uv);
 
@@ -178,7 +173,7 @@ public class ObjReader {
                                 currentMaterialIdx = 0;
                             }
                         } catch(Exception e) {
-                            System.err.println("Error cargando archivo de materiales: " + e.getMessage());
+                            System.err.println("[OBJ] Error loading materials: " + e.getMessage());
                         }
                     }
                     break;
@@ -285,9 +280,6 @@ public class ObjReader {
         for(Thread t : threads){
             t.join();
         }
-
-        System.out.println("No valid uv idxs: "+ count_no_valid);
-        System.out.println("Valid uv idxs: "+ count_valid);
 
         return ObjObject.builder()
             .vertexIdxList(vertIdxList)

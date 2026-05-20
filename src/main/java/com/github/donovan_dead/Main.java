@@ -28,16 +28,16 @@ public class Main {
         for(File file : directory.listFiles()){
             try {
                 if (file.isFile() && file.getName().endsWith(".obj")){
-                    System.out.println("Reading file...");
+                    System.out.println("[OBJ] Reading: " + file.getName());
                     list.add(ObjReader.ReadObjectFile(file));
-                    System.out.println("Finishing reading the file.");
+                    System.out.println("[OBJ] Done: " + file.getName());
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+                System.out.println("[OBJ] Error: " + e.getMessage());
             }
         }
 
-        System.out.println("Files readed");
+        System.out.println("[OBJ] All files loaded");
 
         int count = 0;
         for(ObjObject obj : list){
@@ -49,32 +49,35 @@ public class Main {
             }
             else if(count == 0){
                 obj.translate(
-                    new Vector3(-6, 0, 0)
+                    new Vector3(-10, 3, 0)
                 );
 
                 obj.rotateX(Math.toRadians(0));
 
                 obj.scale(1.1);
-            } else {
+            } else if( count == 2) {
                 
                 obj.translate(
                     new Vector3(20, 0, -5)
                 );
                 obj.rotateY(Math.toRadians(0));
-                obj.scale(150);
+                obj.scale(120);
+            }else {
+                obj.translate(new Vector3(0 , 0, -3));
+                obj.scale(50);
             }
 
             obj.constructBVH();
-            System.out.println("Object BVH finished with " + obj.BVHTree.size() + " nodes.");
+            System.out.println("[BVH] Object BVH built: " + obj.BVHTree.size() + " nodes.");
             count++;
         }
 
-        System.out.println("BVH of objects finished");
+        System.out.println("[BVH] All objects BVH finished");
         return list;
     }
     public static void main(String[] args) throws Exception {
         Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 1000);
-        cam.translate(new Vector3(0, 9, 10));
+        cam.translate(new Vector3(0, 12, 10));
         cam.rotateZ(Math.toRadians(180));
         cam.rotateX(Math.toRadians(-40));
 
@@ -89,7 +92,22 @@ public class Main {
         scene.addObject(
             new Plane(
                 new Vector3( 0, 1,0 ),
-                new Vector3(0, -5, 0),
+                new Vector3(0, -10, 0),
+                Material
+                    .builder()
+                    .Ka(new Vector3(0.02, 0.02, 0.02))
+                    .Kd(new Vector3(0.02, 0.02, 0.02))
+                    .opacity(1.0)
+                    .Ni(100.0)
+                    .build()
+            )
+        );
+
+        Material.builder().clean();
+        scene.addObject(
+            new Plane(
+                new Vector3( 0, 0,1 ),
+                new Vector3(0, 0, -30),
                 Material
                     .builder()
                     .Ka(new Vector3(0.02, 0.02, 0.02))
@@ -110,7 +128,7 @@ public class Main {
                 Material
                     .builder()
                     .Ka(new Vector3(0.02, 0.02, 0.02))
-                    .Kd(new Vector3(0.9, 0.9, 1))
+                    .Kd(new Vector3(0.9, 0.9, 0.1))
                     .Ks(new Vector3(1.0,  1.0,  1.0 ))
                     .Ns(1000.0)
                     .opacity(1.0)
@@ -119,29 +137,38 @@ public class Main {
             )
         );
 
-        System.out.println("Top level BVH started");
+        System.out.println("[BVH] Top-level scene BVH started");
         scene.constructBVH();
-        System.out.println("Top level BVH finished");
+        System.out.println("[BVH] Top-level scene BVH finished");
 
         scene.addLightSource(new LightSource(
             new Vector3(20, 0, -80),
             new RGBColor(255, 255, 255),
-            3000
+            10000
         ));
 
         scene.addLightSource(new LightSource(
             new Vector3(0, 20, 50),
             new RGBColor(180, 200, 220),
-            3000
+            10000
         ));
 
         scene.addLightSource(new SpotLight(
             new Vector3(0, 50, 15),
             new Vector3(0, -1, -0.3),
             new RGBColor(255, 255, 240),
-            2000,
+            5000,
             Math.toRadians(15),
             Math.toRadians(25)
+        ));
+
+        scene.addLightSource(new SpotLight(
+            new Vector3(0, 4, 25),
+            new Vector3(0, 0, -1),
+            new RGBColor(255, 255, 240),
+            6000,
+            Math.toRadians(25),
+            Math.toRadians(45)
         ));
 
         Raytracer raytracer = new Raytracer(cam, scene);
@@ -189,9 +216,9 @@ public class Main {
 
             long end = System.nanoTime();
             long elapsed = end - start;
-            System.out.println("Tiempo: " + (elapsed / 1_000_000.0) + " ms to render " + count);
+            System.out.println("[Render] Frame " + count + " — " + (elapsed / 1_000_000.0) + " ms");
         }
 
-        System.out.println("Rendered to: " + tempDir.getAbsolutePath());
+        System.out.println("[Render] Output: " + tempDir.getAbsolutePath());
     }
 }

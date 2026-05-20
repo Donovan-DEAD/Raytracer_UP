@@ -23,7 +23,7 @@ public class Raytracer {
     public static int width = 1960 * 8 / 4 ; // default
     public static double aspect_ratio = 16.0 / 9.0;
     
-    final static int MAX_DEPTH = 12;
+    final static int MAX_DEPTH = 10;
     final static double EPS = 1e-6;
     final static double IOR_OF_AIR = 1.0;
 
@@ -59,9 +59,9 @@ public class Raytracer {
                     Vector3 finalColor = launchRay(r, i, 1, 0, IOR_OF_AIR); 
 
                     Color color = new Color(
-                        (int)Math.min(finalColor.X(), 255),
-                        (int)Math.min(finalColor.Y(), 255),
-                        (int)Math.min(finalColor.Z(), 255)
+                        (int)Math.min(Math.max(finalColor.X(), 0), 255),
+                        (int)Math.min(Math.max(finalColor.Y(), 0), 255),
+                        (int)Math.min(Math.max(finalColor.Z(), 0), 255)
                     );
                     
 
@@ -84,7 +84,7 @@ public class Raytracer {
         try {
             ImageIO.write(img, "png", outputFile);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.err.println("[Render] Error writing output: " + e.getMessage());
         }
     }
 
@@ -114,8 +114,12 @@ public class Raytracer {
             boolean hitFromInside = shadowInNormal < 0;
             Vector3 hitNormal = hitFromInside ? i.normal().scale(-1) : i.normal();
             if (hitFromInside) shadowInNormal = -shadowInNormal;
-
-            double reflectionCoeficient =  Math.pow((medium_ior - i.material().getNi() )/(i.material().getNi() + medium_ior), 2) * residualEnergy;
+            
+            // Correction in calculus of fresnel, using now Schlick aproximation
+            double fresnel = Math.pow((medium_ior - i.material().getNi() )/(i.material().getNi() + medium_ior), 2);
+            fresnel = fresnel + (1 - fresnel ) * Math.pow(1 - shadowInNormal, 5);
+            
+            double reflectionCoeficient = fresnel * residualEnergy;
             if (reflectionCoeficient < EPS) reflectionCoeficient = 0;
 
             double diffuseCoeficient = (1 - reflectionCoeficient) * i.material().getOpacity() * residualEnergy;

@@ -1,6 +1,7 @@
 package com.github.donovan_dead.Objects;
 
 import java.util.ArrayList;
+import java.awt.Color;
 
 import com.github.donovan_dead.Math.BarycentricCoordinates;
 import com.github.donovan_dead.Math.UV;
@@ -79,18 +80,18 @@ public class ObjObject extends Object3D {
                 BarycentricCoordinates b = Utils.calculateBarycentricCoordinates(ray.getPos(t), v0, v1, v2);
 
                 // UV independiente de las normales
+                UV triUV0 = null, triUV1 = null, triUV2 = null;
+                boolean hasUV = uvIdxList.get(i * 3) != -1 && uvIdxList.get(i * 3 + 1) != -1 && uvIdxList.get(i * 3 + 2) != -1;
                 UV uv;
-                if (uvIdxList.get(i * 3) != -1 && uvIdxList.get(i * 3 + 1) != -1 && uvIdxList.get(i * 3 + 2) != -1) {
-                    // System.out.println("Uv defined");
-                    UV uv0 = uvList.get(uvIdxList.get(i * 3));
-                    UV uv1 = uvList.get(uvIdxList.get(i * 3 + 1));
-                    UV uv2 = uvList.get(uvIdxList.get(i * 3 + 2));
+                if (hasUV) {
+                    triUV0 = uvList.get(uvIdxList.get(i * 3));
+                    triUV1 = uvList.get(uvIdxList.get(i * 3 + 1));
+                    triUV2 = uvList.get(uvIdxList.get(i * 3 + 2));
                     uv = new UV(
-                        uv0.getU() * b.alpha() + uv1.getU() * b.beta() + uv2.getU() * b.gamma(),
-                        uv0.getV() * b.alpha() + uv1.getV() * b.beta() + uv2.getV() * b.gamma()
+                        triUV0.getU() * b.alpha() + triUV1.getU() * b.beta() + triUV2.getU() * b.gamma(),
+                        triUV0.getV() * b.alpha() + triUV1.getV() * b.beta() + triUV2.getV() * b.gamma()
                     );
                 } else {
-                    // System.out.println("No uv defined");
                     uv = new UV(0.5, 0.5);
                 }
 
@@ -109,16 +110,41 @@ public class ObjObject extends Object3D {
                         .normalize();
                 }
 
-                if(ans == null){
-                    ans = new Intersection(normal, t, 
-                        materialList.get(
-                            materialIdxList.get(i)
-                        ), uv);
-                } else if (ans.t() > t){
-                    ans = new Intersection(normal, t, 
-                        materialList.get(
-                            materialIdxList.get(i)
-                        ), uv);
+                // Make the transformation from the tangent space in the normal map to the world space
+                Material mat = materialList.get(materialIdxList.get(i));
+                if (hasUV && mat.getNormalTexture() != null) {
+                    double dU1 = triUV1.getU() - triUV0.getU();
+                    double dV1 = triUV1.getV() - triUV0.getV();
+                    double dU2 = triUV2.getU() - triUV0.getU();
+                    double dV2 = triUV2.getV() - triUV0.getV();
+
+                    // Determinant for the calculus of the inverse matrix with adjugate matrix
+                    double det = dU1 * dV2 - dU2 * dV1;
+
+                    Vector3 T = (Math.abs(det) < 1e-8)
+                        ? new Vector3(1, 0, 0)
+                        : edge1.scale(dV2).subtract(edge2.scale(dV1)).scale(1.0 / det);
+
+                    // Ensure T is perpendicular with the normal
+                    Vector3 T_orth = T.subtract(normal.scale(Utils.dotProduct(normal, T))).normalize();
+                    
+                    // TBN are ortoganl vectors so we use T and N with the cross product to calculate B
+                    Vector3 B = Utils.crossProduct(normal, T_orth);
+
+                    int rgb = mat.getNormalTexture().getPixel(uv);
+                    double bm = mat.getBumpMultiplier();
+                    Color color = new Color(rgb);
+                    double nx = color.getRed()   / 255.0 * 2.0 - 1.0;
+                    double ny = color.getGreen() / 255.0 * 2.0 - 1.0;
+                    double nz = color.getBlue()  / 255.0 * 2.0 - 1.0;
+
+                    normal = T_orth.scale(nx * bm).add(B.scale(ny * bm)).add(normal.scale(nz)).normalize();
+                }
+
+                if (ans == null) {
+                    ans = new Intersection(normal, t, mat, uv);
+                } else if (ans.t() > t) {
+                    ans = new Intersection(normal, t, mat, uv);
                 }
             }
             return ans;

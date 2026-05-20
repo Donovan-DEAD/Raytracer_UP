@@ -107,7 +107,7 @@ public class MtlReader {
                         try {
                             materialBuilder.ambientTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
-                            System.err.println("Error cargando textura ambient: " + e.getMessage());
+                            System.err.println("[MTL] Error loading ambient texture: " + e.getMessage());
                         }
                     }
                     break;
@@ -117,7 +117,7 @@ public class MtlReader {
                         try {
                             materialBuilder.diffuseTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
-                            System.err.println("Error cargando textura diffuse: " + e.getMessage());
+                            System.err.println("[MTL] Error loading diffuse texture: " + e.getMessage());
                         }
                     }
                     break;
@@ -127,7 +127,7 @@ public class MtlReader {
                         try {
                             materialBuilder.specularTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
-                            System.err.println("Error cargando textura specular: " + e.getMessage());
+                            System.err.println("[MTL] Error loading specular texture: " + e.getMessage());
                         }
                     }
                     break;
@@ -137,18 +137,58 @@ public class MtlReader {
                         try {
                             materialBuilder.nsTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
                         } catch (Exception e) {
-                            System.err.println("Error cargando textura Ns: " + e.getMessage());
+                            System.err.println("[MTL] Error loading Ns texture: " + e.getMessage());
+                        }
+                    }
+                    break;
+
+                case "Pr":
+                    if (tokenizer.hasMoreTokens()) {
+                        materialBuilder.roughness(Double.parseDouble(tokenizer.nextToken()));
+                    }
+                    break;
+
+                case "Pm":
+                    if (tokenizer.hasMoreTokens()) {
+                        materialBuilder.metallic(Double.parseDouble(tokenizer.nextToken()));
+                    }
+                    break;
+
+                case "map_Pr":
+                    if (tokenizer.hasMoreTokens()) {
+                        try {
+                            materialBuilder.roughnessTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
+                        } catch (Exception e) {
+                            System.err.println("[MTL] Error loading roughness texture: " + e.getMessage());
+                        }
+                    }
+                    break;
+
+                case "map_Pm":
+                    if (tokenizer.hasMoreTokens()) {
+                        try {
+                            materialBuilder.metallicTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
+                        } catch (Exception e) {
+                            System.err.println("[MTL] Error loading metallic texture: " + e.getMessage());
                         }
                     }
                     break;
 
                 case "map_Bump":
+                case "map_bump":
                 case "bump":
                     if (tokenizer.hasMoreTokens()) {
                         try {
-                            materialBuilder.normalTexture(new File(baseDir, tokenizer.nextToken()).getAbsolutePath());
+                            double bm = 1.0;
+                            String token = tokenizer.nextToken();
+                            if (token.equals("-bm") && tokenizer.hasMoreTokens()) {
+                                bm = Double.parseDouble(tokenizer.nextToken());
+                                token = tokenizer.nextToken();
+                            }
+                            materialBuilder.normalTexture(new File(baseDir, token).getAbsolutePath());
+                            materialBuilder.bumpMultiplier(bm);
                         } catch (Exception e) {
-                            System.err.println("Error cargando textura normal: " + e.getMessage());
+                            System.err.println("[MTL] Error loading normal texture: " + e.getMessage());
                         }
                     }
                     break;
@@ -165,7 +205,7 @@ public class MtlReader {
         }
 
         fileReader.close();
-        System.out.println("Finishing reading the mtl file");
+        System.out.println("[MTL] Done reading .mtl file");
         return new MtlReaderResult(mtlList, nameToIdx);
     }
 

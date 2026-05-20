@@ -40,53 +40,96 @@ public class LightSource extends BaseLightSource {
         double atenuation = intensity / Math.pow(vecToLightRaw.getMagnitude(), 2);
         if (atenuation < 10e-6) atenuation = 0;
 
-        Vector3 diff;
-        if(material.getDiffuseTexture() != null){
-            
-            Color c  = new Color(material.getDiffuseTexture().getPixel(uv));
+        Vector3 albedo;
+        if (material.getDiffuseTexture() != null) {
+            Color c = new Color(material.getDiffuseTexture().getPixel(uv));
+            albedo = new Vector3(
+                material.getKd().X() * c.getRed()   / 255.0,
+                material.getKd().Y() * c.getGreen() / 255.0,
+                material.getKd().Z() * c.getBlue()  / 255.0
+            );
+        } else {
+            albedo = material.getKd();
+        }
 
-            diff = Vector3.builder()
-                .X(material.getKd().X() * c.getRed() / 255.0 * lightColor.R() * atenuation * resultDot)
-                .Y(material.getKd().Y() * c.getGreen() / 255.0 * lightColor.G() * atenuation * resultDot)
-                .Z(material.getKd().Z() * c.getBlue() / 255.0 * lightColor.B() * atenuation * resultDot)
-            .build(); 
-
-        } else 
-            diff = Vector3.builder()
-                .X(material.getKd().X() * lightColor.R() * atenuation * resultDot)
-                .Y(material.getKd().Y() * lightColor.G() * atenuation * resultDot)
-                .Z(material.getKd().Z() * lightColor.B() * atenuation * resultDot)
-            .build();
-
-        Vector3 reflection = normal.scale(2 * resultDot).subtract(vecToLight.scale(-1)).normalize();
-        Vector3 viewDir = origin.subtract(position).normalize();
-        
-        double ns = material.getNsTexture() != null
-            ? material.getNs() * (new Color(material.getNsTexture().getPixel(uv)).getRed() / 255.0)
-            : material.getNs();
-
-        double specFactor = Math.pow(
-            Math.max(0, Utils.dotProduct(reflection, viewDir)),
-            ns
+        Vector3 diff = new Vector3(
+            albedo.X() * lightColor.R() * atenuation * resultDot,
+            albedo.Y() * lightColor.G() * atenuation * resultDot,
+            albedo.Z() * lightColor.B() * atenuation * resultDot
         );
 
-        Vector3 spec;
-        if(material.getSpecularTexture() != null){
-            Color c  = new Color(material.getSpecularTexture().getPixel(uv));
-            
-            spec = Vector3.builder()
-                .X(material.getKs().X() * c.getRed() / 255.0 * lightColor.R() * atenuation * specFactor)
-                .Y(material.getKs().Y() * c.getGreen() / 255.0 * lightColor.G() * atenuation * specFactor)
-                .Z(material.getKs().Z() * c.getBlue() / 255.0 * lightColor.B() * atenuation * specFactor)
-            .build();
+        // Cook torrence implementation
 
-        } else 
-            spec = Vector3.builder()
-                .X(material.getKs().X() * lightColor.R() * atenuation * specFactor)
-                .Y(material.getKs().Y() * lightColor.G() * atenuation * specFactor)
-                .Z(material.getKs().Z() * lightColor.B() * atenuation * specFactor)
-            .build();
+        // Vectors V and H of the equations for the function of specular
+        Vector3 viewDir = origin.subtract(position).normalize();
+        Vector3 halfVec = vecToLight.add(viewDir).normalize();
 
-        return diff.add(spec);
+        // Distribution of microfacets function
+        double D = 0;
+        double roughness2;
+        
+        if(material.getRoughnessTexture() != null){
+            Color c = new Color(material.getRoughnessTexture().getPixel(uv));
+
+            roughness2 = Math.pow( material.getRoughness() * c.getRed()  / 255.0 ,2);
+        } else {
+            roughness2 = material.getRoughness() * material.getRoughness();
+        }
+
+        // D(h) = a^2 / (Pi * (NdotH^2 * (a^2- 1) + 1)^2 )
+        D =  roughness2 / ( Math.PI * Math.pow(( Math.pow(Utils.dotProduct(normal, halfVec), 2) * (roughness2 - 1) + 1), 2)  ) ; 
+
+        double IoRCoeff2 = Math.pow((1.0 - material.getNi()) / (1.0 + material.getNi()), 2);
+        double metallic = material.getMetallicTexture() != null
+            ? material.getMetallic() * (new Color(material.getMetallicTexture().getPixel(uv)).getRed() / 255.0)
+            : material.getMetallic();
+
+        Vector3 F0 = new Vector3(
+            IoRCoeff2 * (1 - metallic) + albedo.X() * metallic,
+            IoRCoeff2 * (1 - metallic) + albedo.Y() * metallic,
+            IoRCoeff2 * (1 - metallic) + albedo.Z() * metallic
+        );
+
+        double HdotV = Math.max(0, Utils.dotProduct(halfVec, viewDir));
+        double oneMinusCos5 = Math.pow(1.0 - HdotV, 5);
+        
+        // F(v, h) =  F0 + (1 - F0)(1-Cos)^5
+        // cos = VdotH
+        // F(v, h) =  F0 + (1 - F0)(1-VdotH)^5
+        Vector3 F = new Vector3(
+            F0.X() + (1 - F0.X()) * oneMinusCos5,
+            F0.Y() + (1 - F0.Y()) * oneMinusCos5,
+            F0.Z() + (1 - F0.Z()) * oneMinusCos5
+        );
+
+        // I'm using the simplified form of the formula for de geometric shadowing/masking function in order to save time from the square roots
+        // G(n, v, l) = min( 1, 2 * (NdotH) * (NdotV) / VdotH,  2 * (NdotH) * (NdotL) / VdotH )
+        double safeHdotV = Math.max(HdotV, 1e-6);
+        double G = Math.min(1, Math.min(
+            (2 * Utils.dotProduct(normal, halfVec) * Utils.dotProduct(normal, viewDir)) / safeHdotV,
+            (2 * Utils.dotProduct(normal, halfVec) * Utils.dotProduct(normal, vecToLight)) / safeHdotV
+        ));
+
+
+
+        double NdotV = Math.max(0, Utils.dotProduct(normal, viewDir));
+        double denominator = 4.0 * resultDot * NdotV + 1e-6;
+        double common_part_eq = D * G / denominator;
+
+        Vector3 diffContrib = new Vector3(
+            (1 - F.X()) * (1 - metallic) * diff.X() / Math.PI,
+            (1 - F.Y()) * (1 - metallic) * diff.Y() / Math.PI,
+            (1 - F.Z()) * (1 - metallic) * diff.Z() / Math.PI
+        );
+
+        // fspec(v,h,l) = F * D * G / (4 * NdotH * NdotL) 
+        // because F is different for each channel I precalculate the result of the common part of the equation
+        Vector3 spec = new Vector3(
+            F.X() * common_part_eq * lightColor.R() * atenuation * resultDot,
+            F.Y() * common_part_eq * lightColor.G() * atenuation * resultDot,
+            F.Z() * common_part_eq * lightColor.B() * atenuation * resultDot
+        );
+
+        return diffContrib.add(spec);
     }
 }

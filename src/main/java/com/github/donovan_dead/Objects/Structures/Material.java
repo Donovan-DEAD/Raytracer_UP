@@ -20,6 +20,11 @@ public class Material {
     private Texture specularTexture;
     private Texture normalTexture;
     private Texture nsTexture;
+    private double bumpMultiplier = 1.0;
+    private double roughness = 0.5;
+    private double metallic  = 0.0;
+    private Texture roughnessTexture;
+    private Texture metallicTexture;
 
     private double opacity;
 
@@ -77,6 +82,26 @@ public class Material {
     public void setNormalTexture(Texture normalTexture) {
         this.normalTexture = normalTexture;
     }
+
+    public double getBumpMultiplier() {
+        return bumpMultiplier;
+    }
+
+    public void setBumpMultiplier(double bumpMultiplier) {
+        this.bumpMultiplier = bumpMultiplier;
+    }
+
+    public double getRoughness() { return roughness; }
+    public void setRoughness(double roughness) { this.roughness = roughness; }
+
+    public double getMetallic() { return metallic; }
+    public void setMetallic(double metallic) { this.metallic = metallic; }
+
+    public Texture getRoughnessTexture() { return roughnessTexture; }
+    public void setRoughnessTexture(Texture roughnessTexture) { this.roughnessTexture = roughnessTexture; }
+
+    public Texture getMetallicTexture() { return metallicTexture; }
+    public void setMetallicTexture(Texture metallicTexture) { this.metallicTexture = metallicTexture; }
 
     public Texture getNsTexture() {
         return nsTexture;
@@ -144,6 +169,11 @@ public class Material {
         private Texture specularTexture;
         private Texture normalTexture;
         private Texture nsTexture;
+        private double bumpMultiplier = 1.0;
+        private double roughness = 0.5;
+        private double metallic  = 0.0;
+        private Texture roughnessTexture;
+        private Texture metallicTexture;
         private double opacity = 1.0;
         private Vector3 Ka = new Vector3(0.2, 0.2, 0.2);
         private Vector3 Kd = new Vector3(0.8, 0.8, 0.8);
@@ -154,7 +184,7 @@ public class Material {
         public Builder fromVector(Vector3 color) {
             this.Ka = color.scale(0.2);
             this.Kd = color;
-            this.Ks = new Vector3(0.0, 0.0, 0.0);
+            this.Ks = Vector3.Zero();
             this.Ns = 32.0;
             this.opacity = 1.0;
             return this;
@@ -197,6 +227,41 @@ public class Material {
 
         public Builder normalTexture(Texture texture) {
             this.normalTexture = texture;
+            return this;
+        }
+
+        public Builder bumpMultiplier(double bm) {
+            this.bumpMultiplier = bm;
+            return this;
+        }
+
+        public Builder roughness(double roughness) {
+            this.roughness = roughness;
+            return this;
+        }
+
+        public Builder metallic(double metallic) {
+            this.metallic = metallic;
+            return this;
+        }
+
+        public Builder roughnessTexture(String filePath) throws IOException {
+            this.roughnessTexture = Texture.builder().fromFile(filePath).build();
+            return this;
+        }
+
+        public Builder roughnessTexture(Texture texture) {
+            this.roughnessTexture = texture;
+            return this;
+        }
+
+        public Builder metallicTexture(String filePath) throws IOException {
+            this.metallicTexture = Texture.builder().fromFile(filePath).build();
+            return this;
+        }
+
+        public Builder metallicTexture(Texture texture) {
+            this.metallicTexture = texture;
             return this;
         }
 
@@ -246,6 +311,11 @@ public class Material {
             this.specularTexture = null;
             this.normalTexture = null;
             this.nsTexture = null;
+            this.bumpMultiplier = 1.0;
+            this.roughness = 0.5;
+            this.metallic  = 0.0;
+            this.roughnessTexture = null;
+            this.metallicTexture  = null;
             this.opacity = 1.0;
             this.Ka = new Vector3(0.2, 0.2, 0.2);
             this.Kd = new Vector3(0.8, 0.8, 0.8);
@@ -262,6 +332,11 @@ public class Material {
             material.setSpecularTexture(this.specularTexture);
             material.setNormalTexture(this.normalTexture);
             material.setNsTexture(this.nsTexture);
+            material.setBumpMultiplier(this.bumpMultiplier);
+            material.setRoughness(this.roughness);
+            material.setMetallic(this.metallic);
+            material.setRoughnessTexture(this.roughnessTexture);
+            material.setMetallicTexture(this.metallicTexture);
             material.setOpacity(this.opacity);
             material.setKa(this.Ka);
             material.setKd(this.Kd);
