@@ -65,7 +65,6 @@ public class LightSource extends BaseLightSource {
         Vector3 halfVec = vecToLight.add(viewDir).normalize();
 
         // Distribution of microfacets function
-        double D = 0;
         double roughness2;
         
         if(material.getRoughnessTexture() != null){
@@ -77,7 +76,8 @@ public class LightSource extends BaseLightSource {
         }
 
         // D(h) = a^2 / (Pi * (NdotH^2 * (a^2- 1) + 1)^2 )
-        D =  roughness2 / ( Math.PI * Math.pow(( Math.pow(Utils.dotProduct(normal, halfVec), 2) * (roughness2 - 1) + 1), 2)  ) ; 
+        double NdotH_d = Utils.dotProduct(normal, halfVec);
+        double D = roughness2 / (Math.PI * Math.pow(NdotH_d * NdotH_d * (roughness2 - 1) + 1, 2) + 1e-7);
 
         double IoRCoeff2 = Math.pow((1.0 - material.getNi()) / (1.0 + material.getNi()), 2);
         double metallic = material.getMetallicTexture() != null
@@ -102,12 +102,17 @@ public class LightSource extends BaseLightSource {
             F0.Z() + (1 - F0.Z()) * oneMinusCos5
         );
 
-        // I'm using the simplified form of the formula for de geometric shadowing/masking function in order to save time from the square roots
+        // I'm using the simplified form of the formula for the geometric shadowing/masking function in order to save time from the square roots
         // G(n, v, l) = min( 1, 2 * (NdotH) * (NdotV) / VdotH,  2 * (NdotH) * (NdotL) / VdotH )
+        // Clamp all dot products to >= 0: perturbed normals (from normal maps) can produce negative
+        // NdotV or NdotL, making G negative and spec a negative number that corrupts color channels.
         double safeHdotV = Math.max(HdotV, 1e-6);
+        double NdotH_g = Math.max(0, Utils.dotProduct(normal, halfVec));
+        double NdotV_g = Math.max(0, Utils.dotProduct(normal, viewDir));
+        double NdotL_g = resultDot;
         double G = Math.min(1, Math.min(
-            (2 * Utils.dotProduct(normal, halfVec) * Utils.dotProduct(normal, viewDir)) / safeHdotV,
-            (2 * Utils.dotProduct(normal, halfVec) * Utils.dotProduct(normal, vecToLight)) / safeHdotV
+            (2 * NdotH_g * NdotV_g) / safeHdotV,
+            (2 * NdotH_g * NdotL_g) / safeHdotV
         ));
 
 

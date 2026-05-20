@@ -79,7 +79,7 @@ public class SpotLight extends BaseLightSource {
         }
 
         double NdotH = Utils.dotProduct(normal, halfVec);
-        double D = roughness2 / (Math.PI * Math.pow(NdotH * NdotH * (roughness2 - 1) + 1, 2));
+        double D = roughness2 / (Math.PI * Math.pow(NdotH * NdotH * (roughness2 - 1) + 1, 2) + 1e-7);
 
         double IoRCoeff2 = Math.pow((1.0 - material.getNi()) / (1.0 + material.getNi()), 2);
         double metallic = material.getMetallicTexture() != null
@@ -101,9 +101,12 @@ public class SpotLight extends BaseLightSource {
         );
 
         double safeHdotV = Math.max(HdotV, 1e-6);
+        double NdotH_g = Math.max(0, NdotH);
+        double NdotV_g = Math.max(0, Utils.dotProduct(normal, viewDir));
+        double NdotL_g = NdotL;
         double G = Math.min(1, Math.min(
-            (2 * NdotH * Utils.dotProduct(normal, viewDir)) / safeHdotV,
-            (2 * NdotH * Utils.dotProduct(normal, vecToLight)) / safeHdotV
+            (2 * NdotH_g * NdotV_g) / safeHdotV,
+            (2 * NdotH_g * NdotL_g) / safeHdotV
         ));
 
         double NdotV = Math.max(0, Utils.dotProduct(normal, viewDir));

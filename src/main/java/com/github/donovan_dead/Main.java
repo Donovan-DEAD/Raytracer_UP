@@ -166,9 +166,9 @@ public class Main {
             new Vector3(0, 4, 25),
             new Vector3(0, 0, -1),
             new RGBColor(255, 255, 240),
-            6000,
-            Math.toRadians(25),
-            Math.toRadians(45)
+            9000,
+            Math.toRadians(45),
+            Math.toRadians(85)
         ));
 
         Raytracer raytracer = new Raytracer(cam, scene);

@@ -125,19 +125,24 @@ public class Raytracer {
             double diffuseCoeficient = (1 - reflectionCoeficient) * i.material().getOpacity() * residualEnergy;
             double refractionCoeficient = (1 - reflectionCoeficient) * (1 - i.material().getOpacity()) * residualEnergy;
 
+            double nextIor = hitFromInside ? IOR_OF_AIR : i.material().getNi();
+            double discriminant = 1.0 - Math.pow(medium_ior / nextIor, 2) * (1.0 - Math.pow(shadowInNormal, 2));
+
+            // On total internal reflection the refraction energy can't escape — redirect it to reflection
+            double effectiveReflectionCoef = (discriminant <= 0)
+                ? reflectionCoeficient + refractionCoeficient
+                : reflectionCoeficient;
+
             Vector3 reflectionColor = Vector3.Zero();
-            if (reflectionCoeficient != 0 )
+            if (effectiveReflectionCoef != 0)
                  reflectionColor = reflectionColor.add(
                     launchRay(
                         new Ray(
                             ray.getPos(i.t()).add(hitNormal.scale(EPS)),
                             ray.direction().subtract(hitNormal.scale(-2 * shadowInNormal)).normalize()
                         ),
-                        farplane, reflectionCoeficient, depth + 1, medium_ior)
+                        farplane, effectiveReflectionCoef, depth + 1, medium_ior)
                     );
-
-            double nextIor = hitFromInside ? IOR_OF_AIR : i.material().getNi();
-            double discriminant = 1.0 - Math.pow(medium_ior / nextIor, 2) * (1.0 - Math.pow(shadowInNormal, 2));
 
             Vector3 refractionColor = Vector3.Zero();
             if(discriminant > 0)
