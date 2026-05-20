@@ -45,7 +45,6 @@ public class Main {
                 obj.translate(
                     new Vector3(6, 0, 0)
                 );
-                
                 obj.scale(1.1);
             }
             else if(count == 0){
@@ -53,7 +52,7 @@ public class Main {
                     new Vector3(-6, 0, 0)
                 );
 
-                obj.rotateX(Math.toRadians(50));
+                obj.rotateX(Math.toRadians(0));
 
                 obj.scale(1.1);
             } else {
@@ -62,7 +61,7 @@ public class Main {
                     new Vector3(20, 0, -5)
                 );
                 obj.rotateY(Math.toRadians(0));
-                obj.scale(90);
+                obj.scale(150);
             }
 
             obj.constructBVH();
@@ -89,13 +88,33 @@ public class Main {
         Material.builder().clean();
         scene.addObject(
             new Plane(
-                new Vector3( 0, 1,0 ), 
-                new Vector3(0, -20, 0), 
+                new Vector3( 0, 1,0 ),
+                new Vector3(0, -5, 0),
                 Material
                     .builder()
-                    .fromVector(
-                        new Vector3(0.5,0.2,0.5)
-                    )
+                    .Ka(new Vector3(0.02, 0.02, 0.02))
+                    .Kd(new Vector3(0.02, 0.02, 0.02))
+                    .Ks(new Vector3(1.0,  1.0,  1.0 ))
+                    .Ns(1000.0)
+                    .opacity(1.0)
+                    .Ni(100.0)
+                    .build()
+            )
+        );
+
+        Material.builder().clean();
+        scene.addObject(
+            new Plane(
+                new Vector3( 0, -1,0 ),
+                new Vector3(0, 100, 0),
+                Material
+                    .builder()
+                    .Ka(new Vector3(0.02, 0.02, 0.02))
+                    .Kd(new Vector3(0.9, 0.9, 1))
+                    .Ks(new Vector3(1.0,  1.0,  1.0 ))
+                    .Ns(1000.0)
+                    .opacity(1.0)
+                    .Ni(1.0)
                     .build()
             )
         );
@@ -111,16 +130,16 @@ public class Main {
         ));
 
         scene.addLightSource(new LightSource(
-            new Vector3(0, 20, 5),
+            new Vector3(0, 20, 50),
             new RGBColor(180, 200, 220),
-            1500
+            3000
         ));
 
         scene.addLightSource(new SpotLight(
             new Vector3(0, 50, 15),
             new Vector3(0, -1, -0.3),
             new RGBColor(255, 255, 240),
-            1000,
+            2000,
             Math.toRadians(15),
             Math.toRadians(25)
         ));

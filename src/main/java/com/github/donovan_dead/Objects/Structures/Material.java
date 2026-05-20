@@ -31,11 +31,11 @@ public class Material {
 
     public Material() {
         this.Ka = new Vector3(0.05, 0.05, 0.05);
-        this.Kd = new Vector3(0.4, 0.4, 0.4);
+        this.Kd = new Vector3(0.7, 0.4, 0.5);
         this.Ks = new Vector3(0.9, 0.9, 0.9);
-        this.Ns = 96.0;
-        this.Ni = 1.0;
-        this.opacity = 1.0;
+        this.Ns = 126.0;
+        this.Ni = 1.5;
+        this.opacity = 0.6;
     }
 
     public static Material getBlackMaterial() {
