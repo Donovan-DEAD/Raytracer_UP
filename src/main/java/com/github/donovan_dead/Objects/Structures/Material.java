@@ -22,7 +22,7 @@ public class Material {
     private Texture nsTexture;
     private double bumpMultiplier = 1.0;
     private double roughness = 0.5;
-    private double metallic  = 0.0;
+    private double metallic  = 1.0;
     private Texture roughnessTexture;
     private Texture metallicTexture;
 

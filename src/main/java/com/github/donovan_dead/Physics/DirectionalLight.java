@@ -8,8 +8,6 @@ import com.github.donovan_dead.Math.Utils;
 
 public class DirectionalLight extends BaseLightSource {
     private final Vector3 direction;
-    private final RGBColor lightColor;
-    private final double intensity;
 
     /**
      * Creates a directional light with a given direction and color.
@@ -19,25 +17,16 @@ public class DirectionalLight extends BaseLightSource {
      * @param intensity the intensity of the light
      */
     public DirectionalLight(Vector3 direction, RGBColor lightColor, double intensity) {
+        super(null, lightColor, intensity);
         this.direction = direction.normalize();
-        this.lightColor = lightColor;
-        this.intensity = intensity;
     }
 
     public Vector3 direction() {
         return direction;
     }
 
-    public RGBColor lightColor() {
-        return lightColor;
-    }
-
-    public double intensity() {
-        return intensity;
-    }
-
     @Override
-    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 origin, UV uv){
+    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 rayOrig, double mediumIor, UV uv){
         Vector3 vecToLight = direction;
         double resultDot = Math.max(0, Utils.dotProduct(vecToLight, normal.normalize()));
 

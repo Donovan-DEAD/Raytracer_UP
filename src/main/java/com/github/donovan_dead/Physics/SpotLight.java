@@ -9,10 +9,7 @@ import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.Material;
 
 public class SpotLight extends BaseLightSource {
-    private final Vector3 origin;
     private final Vector3 direction;
-    private final RGBColor lightColor;
-    private final double intensity;
     private final double cosInner;
     private final double cosOuter;
 
@@ -22,21 +19,16 @@ public class SpotLight extends BaseLightSource {
      */
     public SpotLight(Vector3 origin, Vector3 direction, RGBColor lightColor,
                      double intensity, double innerAngle, double outerAngle) {
-        this.origin    = origin;
+        super(origin, lightColor, intensity);
         this.direction = direction.normalize();
-        this.lightColor = lightColor;
-        this.intensity  = intensity;
         this.cosInner   = Math.cos(innerAngle);
         this.cosOuter   = Math.cos(outerAngle);
     }
 
-    public Vector3 origin()    { return origin; }
     public Vector3 direction() { return direction; }
-    public RGBColor lightColor() { return lightColor; }
-    public double intensity()  { return intensity; }
 
     @Override
-    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 origin, UV uv) {
+    public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 rayOrig, double mediumIor, UV uv) {
         Vector3 vecToLightRaw  = this.origin.subtract(position);
         Vector3 vecToLight     = vecToLightRaw.normalize();
 
@@ -67,7 +59,7 @@ public class SpotLight extends BaseLightSource {
             albedo.Z() * lightColor.B() * atenuation * NdotL
         );
 
-        Vector3 viewDir = origin.subtract(position).normalize();
+        Vector3 viewDir = rayOrig.subtract(position).normalize();
         Vector3 halfVec = vecToLight.add(viewDir).normalize();
 
         double roughness2;
@@ -81,7 +73,7 @@ public class SpotLight extends BaseLightSource {
         double NdotH = Utils.dotProduct(normal, halfVec);
         double D = roughness2 / (Math.PI * Math.pow(NdotH * NdotH * (roughness2 - 1) + 1, 2) + 1e-7);
 
-        double IoRCoeff2 = Math.pow((1.0 - material.getNi()) / (1.0 + material.getNi()), 2);
+        double IoRCoeff2 = Math.pow((mediumIor - material.getNi()) / (material.getNi() + mediumIor), 2);
         double metallic = material.getMetallicTexture() != null
             ? material.getMetallic() * (new Color(material.getMetallicTexture().getPixel(uv)).getRed() / 255.0)
             : material.getMetallic();

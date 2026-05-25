@@ -11,19 +11,19 @@ import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Plane;
 import com.github.donovan_dead.Physics.BaseLightSource;
+import com.github.donovan_dead.Physics.DirectionalLight;
 import com.github.donovan_dead.Physics.Intersection;
-import com.github.donovan_dead.Physics.LightSource;
 import com.github.donovan_dead.Physics.Ray;
-import com.github.donovan_dead.Physics.SpotLight;
+import com.github.donovan_dead.Physics.areaLights.AreaLight;
 
 public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960 * 8 / 4 ; // default
+    public static int width = 1960 * 2 / 4 ; // default
     public static double aspect_ratio = 16.0 / 9.0;
     
-    final static int MAX_DEPTH = 10;
+    final static int MAX_DEPTH = 6;
     final static double EPS = 1e-6;
     final static double IOR_OF_AIR = 1.0;
 
@@ -100,7 +100,7 @@ public class Raytracer {
                 i = (i.t() < objectIn.t()) ? i: objectIn ;
 
             
-            return getLightsContribution(i, ray, residualEnergy);
+            return getLightsContribution(i, ray, residualEnergy, medium_ior);
 
         } else {
                
@@ -116,7 +116,11 @@ public class Raytracer {
             if (hitFromInside) shadowInNormal = -shadowInNormal;
             
             // Correction in calculus of fresnel, using now Schlick aproximation
+
+            // This calculus of the index of refraction is used for normal incidence, it varies in function of the angule
             double fresnel = Math.pow((medium_ior - i.material().getNi() )/(i.material().getNi() + medium_ior), 2);
+
+            // The approximationi of Schlick tries to make a cheap computational aproximation
             fresnel = fresnel + (1 - fresnel ) * Math.pow(1 - shadowInNormal, 5);
             
             double reflectionCoeficient = fresnel * residualEnergy;
@@ -159,13 +163,13 @@ public class Raytracer {
                         farplane, refractionCoeficient, depth + 1, nextIor)
                 );
             
-            Vector3 diffuseColor = getLightsContribution(i, ray, diffuseCoeficient);
+            Vector3 diffuseColor = getLightsContribution(i, ray, diffuseCoeficient, medium_ior);
 
             return diffuseColor.add(reflectionColor).add(refractionColor);
         }
     }
 
-    private Vector3 getLightsContribution(Intersection i,Ray ray, double residualEnergy){
+    private Vector3 getLightsContribution(Intersection i, Ray ray, double residualEnergy, double mediumIor){
 
         Vector3 finalColor = new Vector3(0,0,0);
 
@@ -175,21 +179,21 @@ public class Raytracer {
         for (BaseLightSource l : scene.getLights()) {
             Vector3 lightContribution;
 
-            if (l instanceof LightSource) {
-                LightSource light = (LightSource) l;
-                lightContribution = hasAnObstacle(light.origin(), hitPoint, hitNormal)
-                    ? Vector3.Zero()
-                    : l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), i.uv());
+            if (l instanceof DirectionalLight) {
+                lightContribution = l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), mediumIor, i.uv());
+            } 
+            else if( l instanceof AreaLight){
+                Vector3 meanContributtion =  Vector3.Zero();
 
-            } else if (l instanceof SpotLight) {
-                
-                SpotLight spotlight = (SpotLight) l;
-                lightContribution = hasAnObstacle(spotlight.origin(), hitPoint, hitNormal)
-                    ? Vector3.Zero()
-                    : l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), i.uv());
+                for(int ii = 0; ii < AreaLight.Samples; ii++){
+                    Vector3 sample = ((AreaLight)l).getSample();
+                    meanContributtion = meanContributtion.add((hasAnObstacle(sample, hitPoint, hitNormal)) ? Vector3.Zero() : l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), mediumIor, i.uv()));
+                }
 
-            } else {
-                lightContribution = l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), i.uv());
+                lightContribution = meanContributtion.scale(1.0 / (double)AreaLight.Samples);
+            }
+            else {
+                lightContribution = (hasAnObstacle(l.origin(), hitPoint, hitNormal)) ? Vector3.Zero() : l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), mediumIor, i.uv());
             }
 
             finalColor = finalColor.add(lightContribution);

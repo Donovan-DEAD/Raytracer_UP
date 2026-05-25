@@ -1,21 +1,39 @@
-package com.github.donovan_dead.Physics;
+package com.github.donovan_dead.Physics.areaLights;
 
 import java.awt.Color;
 
 import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Math.UV;
+import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.Material;
-import com.github.donovan_dead.Math.Utils;
 
-public class LightSource extends BaseLightSource {
-    public LightSource(Vector3 origin, RGBColor lightColor, double intensity) {
+public class CircleAreaLight extends AreaLight {
+    private Vector3 up = new Vector3(0, 1, 0);
+    private Vector3 side = new Vector3(1, 0, 0);
+    private double radius;
+
+    public CircleAreaLight(Vector3 origin, double radius, RGBColor lightColor, double intensity) {
         super(origin, lightColor, intensity);
+        this.radius = radius;
+    }
+
+    public double radius() {
+        return radius;
+    }
+
+    @Override
+    public Vector3 getSample() {
+        double angle = Math.toRadians(Math.random() * 360);
+        double rad = Math.sqrt(Math.random()) * this.radius;
+
+        currentSample = up.scale(Math.sin(angle) * rad).add(side.scale(Math.cos(angle) * rad)).add(origin);
+        return currentSample;
     }
 
     @Override
     public Vector3 getLightContribution(Vector3 position, Vector3 normal, Material material, Vector3 rayOrig, double mediumIor, UV uv) {
-        Vector3 vecToLightRaw = this.origin.subtract(position);
+        Vector3 vecToLightRaw = currentSample.subtract(position);
         Vector3 vecToLight    = vecToLightRaw.normalize();
         double resultDot = Math.max(0, Utils.dotProduct(vecToLight, normal.normalize()));
 
@@ -40,13 +58,9 @@ public class LightSource extends BaseLightSource {
             albedo.Z() * lightColor.B() * atenuation * resultDot
         );
 
-        // Cook torrence implementation
-
-        // Vectors V and H of the equations for the function of specular
         Vector3 viewDir = rayOrig.subtract(position).normalize();
         Vector3 halfVec = vecToLight.add(viewDir).normalize();
 
-        // Distribution of microfacets function
         double roughness2;
         
         if(material.getRoughnessTexture() != null){
@@ -57,7 +71,6 @@ public class LightSource extends BaseLightSource {
             roughness2 = material.getRoughness() * material.getRoughness();
         }
 
-        // D(h) = a^2 / (Pi * (NdotH^2 * (a^2- 1) + 1)^2 )
         double NdotH_d = Utils.dotProduct(normal, halfVec);
         double D = roughness2 / (Math.PI * Math.pow(NdotH_d * NdotH_d * (roughness2 - 1) + 1, 2) + 1e-7);
 
@@ -75,19 +88,12 @@ public class LightSource extends BaseLightSource {
         double HdotV = Math.max(0, Utils.dotProduct(halfVec, viewDir));
         double oneMinusCos5 = Math.pow(1.0 - HdotV, 5);
         
-        // F(v, h) =  F0 + (1 - F0)(1-Cos)^5
-        // cos = VdotH
-        // F(v, h) =  F0 + (1 - F0)(1-VdotH)^5
         Vector3 F = new Vector3(
             F0.X() + (1 - F0.X()) * oneMinusCos5,
             F0.Y() + (1 - F0.Y()) * oneMinusCos5,
             F0.Z() + (1 - F0.Z()) * oneMinusCos5
         );
 
-        // I'm using the simplified form of the formula for the geometric shadowing/masking function in order to save time from the square roots
-        // G(n, v, l) = min( 1, 2 * (NdotH) * (NdotV) / VdotH,  2 * (NdotH) * (NdotL) / VdotH )
-        // Clamp all dot products to >= 0: perturbed normals (from normal maps) can produce negative
-        // NdotV or NdotL, making G negative and spec a negative number that corrupts color channels.
         double safeHdotV = Math.max(HdotV, 1e-6);
         double NdotH_g = Math.max(0, Utils.dotProduct(normal, halfVec));
         double NdotV_g = Math.max(0, Utils.dotProduct(normal, viewDir));
@@ -109,8 +115,6 @@ public class LightSource extends BaseLightSource {
             (1 - F.Z()) * (1 - metallic) * diff.Z() / Math.PI
         );
 
-        // fspec(v,h,l) = F * D * G / (4 * NdotH * NdotL) 
-        // because F is different for each channel I precalculate the result of the common part of the equation
         Vector3 spec = new Vector3(
             F.X() * common_part_eq * lightColor.R() * atenuation * resultDot,
             F.Y() * common_part_eq * lightColor.G() * atenuation * resultDot,
@@ -119,4 +123,20 @@ public class LightSource extends BaseLightSource {
 
         return diffContrib.add(spec);
     }
+
+    public void rotateX(double angleInRad){
+        up = up.rotateX(angleInRad).normalize();
+        side = side.rotateX(angleInRad).normalize();
+    }
+
+    public void rotateY(double angleInRad){
+        up = up.rotateY(angleInRad).normalize();
+        side = side.rotateY(angleInRad).normalize();
+    }
+
+    public void rotateZ(double angleInRad){
+        up = up.rotateZ(angleInRad).normalize();
+        side = side.rotateZ(angleInRad).normalize();
+    }
+
 }
