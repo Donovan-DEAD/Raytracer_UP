@@ -8,9 +8,7 @@ import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.ObjObject;
 import com.github.donovan_dead.Objects.Plane;
 import com.github.donovan_dead.Objects.Structures.Material;
-import com.github.donovan_dead.Physics.SpotLight;
 import com.github.donovan_dead.Physics.areaLights.CircleAreaLight;
-import com.github.donovan_dead.Physics.areaLights.RectangleAreaLight;
 import com.github.donovan_dead.Raytracer.Camera;
 import com.github.donovan_dead.Raytracer.ObjReader;
 import com.github.donovan_dead.Raytracer.Raytracer;
@@ -43,9 +41,9 @@ public class Main {
         for(ObjObject obj : list){
             if(count == 1){
                 obj.translate(
-                    new Vector3(6, 0.75, 3)
+                    new Vector3(8, 0, 3)
                 );
-                obj.scale(1.1);
+                obj.scale(1.3);
             }
             else if(count == 0){
                 obj.translate(
@@ -63,9 +61,9 @@ public class Main {
                 obj.rotateY(Math.toRadians(0));
                 obj.scale(120);
             }else {
-                obj.translate(new Vector3(5 , 1.5, -19));
-                obj.scale(60);
-                obj.rotateX(Math.toRadians(45));
+                obj.translate(new Vector3(5 , 2, -19));
+                obj.scale(100);
+                obj.rotateX(Math.toRadians(55));
             }
 
             obj.constructBVH();
@@ -77,7 +75,7 @@ public class Main {
         return list;
     }
     public static void main(String[] args) throws Exception {
-        Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 1000);
+        Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 1000, 0.2, 23);
         cam.translate(new Vector3(0, 9, 10));
         cam.rotateZ(Math.toRadians(180));
         cam.rotateX(Math.toRadians(-25));
@@ -148,6 +146,12 @@ public class Main {
             new RGBColor(255, 255, 255),
             1400
         ));
+        
+        // scene.addLightSource(new LightSource(
+        //     new Vector3(0, 5, 32),
+        //     new RGBColor(255, 255, 255),
+        //     1400
+        // ));
 
         CircleAreaLight cl = new CircleAreaLight(
             new Vector3(0, 45, -15),
@@ -157,6 +161,13 @@ public class Main {
         );
         cl.rotateX(Math.toRadians(180));
         scene.addLightSource(cl);
+        
+        // scene.addLightSource(new LightSource(
+        //     new Vector3(0, 45, -15),
+        //     new RGBColor(255, 255, 255),
+        //     9000
+        // ));
+
 
         // scene.addLightSource(new SpotLight(
         //     new Vector3(0, 50, -15),

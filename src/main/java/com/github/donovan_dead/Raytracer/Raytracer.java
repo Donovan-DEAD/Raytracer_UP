@@ -20,7 +20,7 @@ public class Raytracer {
     private Camera cam;
     private Scene scene;
 
-    public static int width = 1960 * 2 / 4 ; // default
+    public static int width = 1960 * 10 / 5 ; // default
     public static double aspect_ratio = 16.0 / 9.0;
     
     final static int MAX_DEPTH = 6;
@@ -53,10 +53,31 @@ public class Raytracer {
                     double u = (double)w / (width - 1);
                     double v = (double)row / (height - 1);
 
-                    Ray r = cam.getRay(u, v);
 
-                    Intersection i = farPlane.calculateIntersection(r);
-                    Vector3 finalColor = launchRay(r, i, 1, 0, IOR_OF_AIR); 
+                    Vector3 finalColor = Vector3.Zero();
+
+                    // Variable to control how many samples we take for area lights, as DOF already makes many samples 
+                    // this helps us to reduce the noise that can happen when area lights takes few samples
+                    boolean hasDOF = !cam.isPinHoleCamera();
+                    if(cam.isPinHoleCamera()){
+                        Ray r = cam.getRay(u, v);
+
+                        Intersection inter = farPlane.calculateIntersection(r);
+                        finalColor = finalColor.add(
+                            launchRay(r, inter, 1, 0, IOR_OF_AIR, hasDOF)
+                        );
+                    } else {
+                        for(int i = 0; i < Camera.samples_for_DOF; i++){
+                            Ray r = cam.getRay(u, v);
+
+                            Intersection inter = farPlane.calculateIntersection(r);
+                            finalColor = finalColor.add(
+                                launchRay(r, inter, 1, 0, IOR_OF_AIR, hasDOF)
+                            );
+                        }
+
+                        finalColor = finalColor.scale( 1.0 / (double)Camera.samples_for_DOF);
+                    }
 
                     Color color = new Color(
                         (int)Math.min(Math.max(finalColor.X(), 0), 255),
@@ -88,19 +109,19 @@ public class Raytracer {
         }
     }
 
-    private Vector3 launchRay(Ray ray, Intersection farplane, double residualEnergy, double depth, double medium_ior){
-        
+    private Vector3 launchRay(Ray ray, Intersection farplane, double residualEnergy, double depth, double medium_ior, boolean withDOF){
+
         // If max depth reached only calculate the standard ilumination model
         if (depth == MAX_DEPTH || residualEnergy < 1e-4){
-            
+
             Intersection objectIn = scene.calculateIntersection(ray);
             Intersection i = farplane;
-            
-            if(objectIn != null) 
+
+            if(objectIn != null)
                 i = (i.t() < objectIn.t()) ? i: objectIn ;
 
-            
-            return getLightsContribution(i, ray, residualEnergy, medium_ior);
+
+            return getLightsContribution(i, ray, residualEnergy, medium_ior, withDOF);
 
         } else {
                
@@ -145,7 +166,7 @@ public class Raytracer {
                             ray.getPos(i.t()).add(hitNormal.scale(EPS)),
                             ray.direction().subtract(hitNormal.scale(-2 * shadowInNormal)).normalize()
                         ),
-                        farplane, effectiveReflectionCoef, depth + 1, medium_ior)
+                        farplane, effectiveReflectionCoef, depth + 1, medium_ior, withDOF)
                     );
 
             Vector3 refractionColor = Vector3.Zero();
@@ -160,16 +181,16 @@ public class Raytracer {
                                     hitNormal.scale(medium_ior / nextIor * shadowInNormal - Math.sqrt(discriminant))
                                 ).normalize()
                         ),
-                        farplane, refractionCoeficient, depth + 1, nextIor)
+                        farplane, refractionCoeficient, depth + 1, nextIor, withDOF)
                 );
-            
-            Vector3 diffuseColor = getLightsContribution(i, ray, diffuseCoeficient, medium_ior);
+
+            Vector3 diffuseColor = getLightsContribution(i, ray, diffuseCoeficient, medium_ior, withDOF);
 
             return diffuseColor.add(reflectionColor).add(refractionColor);
         }
     }
 
-    private Vector3 getLightsContribution(Intersection i, Ray ray, double residualEnergy, double mediumIor){
+    private Vector3 getLightsContribution(Intersection i, Ray ray, double residualEnergy, double mediumIor, boolean withDOF){
 
         Vector3 finalColor = new Vector3(0,0,0);
 
@@ -181,16 +202,17 @@ public class Raytracer {
 
             if (l instanceof DirectionalLight) {
                 lightContribution = l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), mediumIor, i.uv());
-            } 
+            }
             else if( l instanceof AreaLight){
                 Vector3 meanContributtion =  Vector3.Zero();
+                int samples = withDOF ? AreaLight.SamplesWithDOF : AreaLight.Samples;
 
-                for(int ii = 0; ii < AreaLight.Samples; ii++){
+                for(int ii = 0; ii < samples; ii++){
                     Vector3 sample = ((AreaLight)l).getSample();
                     meanContributtion = meanContributtion.add((hasAnObstacle(sample, hitPoint, hitNormal)) ? Vector3.Zero() : l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), mediumIor, i.uv()));
                 }
 
-                lightContribution = meanContributtion.scale(1.0 / (double)AreaLight.Samples);
+                lightContribution = meanContributtion.scale(1.0 / (double)samples);
             }
             else {
                 lightContribution = (hasAnObstacle(l.origin(), hitPoint, hitNormal)) ? Vector3.Zero() : l.getLightContribution(hitPoint, hitNormal, i.material(), ray.origin(), mediumIor, i.uv());

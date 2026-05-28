@@ -336,7 +336,7 @@ public class Material {
             material.setRoughness(this.roughness);
             material.setMetallic(this.metallic);
             material.setRoughnessTexture(this.roughnessTexture);
-            material.setMetallicTexture(this.metallicTexture);
+            material.setMetallicTexture(this    .metallicTexture);
             material.setOpacity(this.opacity);
             material.setKa(this.Ka);
             material.setKd(this.Kd);

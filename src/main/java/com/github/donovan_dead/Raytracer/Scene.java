@@ -2,7 +2,6 @@ package com.github.donovan_dead.Raytracer;
 
 import java.util.ArrayList;
 
-import com.github.donovan_dead.Colors.RGBColor;
 import com.github.donovan_dead.Objects.Object3D;
 import com.github.donovan_dead.Objects.Structures.AABB;
 import com.github.donovan_dead.Objects.Structures.BVHNode;
