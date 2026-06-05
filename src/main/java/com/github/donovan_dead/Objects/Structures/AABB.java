@@ -3,18 +3,46 @@ package com.github.donovan_dead.Objects.Structures;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Physics.Ray;
 
+/**
+ * Axis-Aligned Bounding Box used for spatial acceleration and ray-box intersection tests.
+ * Stores min/max coordinates and provides efficient bounding volume operations.
+ */
 public class AABB {
     private double minX, minY, minZ;
     private double maxX, maxY, maxZ;
 
+    /**
+     * Constructs an AABB from minimum and maximum corner vectors.
+     *
+     * @param min the minimum corner (low X, Y, Z values)
+     * @param max the maximum corner (high X, Y, Z values)
+     */
     public AABB(Vector3 min, Vector3 max) {
         this.minX = min.X(); this.minY = min.Y(); this.minZ = min.Z();
         this.maxX = max.X(); this.maxY = max.Y(); this.maxZ = max.Z();
     }
 
+    /**
+     * Gets the minimum corner of the bounding box.
+     *
+     * @return the minimum corner vector
+     */
     public Vector3 min() { return new Vector3(minX, minY, minZ); }
+
+    /**
+     * Gets the maximum corner of the bounding box.
+     *
+     * @return the maximum corner vector
+     */
     public Vector3 max() { return new Vector3(maxX, maxY, maxZ); }
 
+    /**
+     * Tests ray-box intersection using the slab method.
+     * Handles division by zero for rays parallel to axes.
+     *
+     * @param ray the ray to test
+     * @return true if the ray intersects this box, false otherwise
+     */
     public boolean intersectsBox(Ray ray) {
         double txMin = (minX - ray.origin().X()) / ray.direction().X();
         double txMax = (maxX - ray.origin().X()) / ray.direction().X();
@@ -34,12 +62,23 @@ public class AABB {
         return tMax >= tMin && tMax >= 0;
     }
 
+    /**
+     * Calculates the surface area of this bounding box.
+     * Used in SAH (Surface Area Heuristic) cost functions during BVH construction.
+     *
+     * @return the total surface area
+     */
     public double getSurfaceArea() {
         return  (maxX - minX) * (maxY - minY) +
                 (maxZ - minZ) * (maxY - minY) +
                 (maxX - minX) * (maxZ - minZ);
     }
 
+    /**
+     * Gets the geometric centroid of this bounding box.
+     *
+     * @return the center point
+     */
     public Vector3 getCentroid() {
         return new Vector3(
             (minX + maxX) / 2d,
@@ -48,6 +87,13 @@ public class AABB {
         );
     }
 
+    /**
+     * Extends this bounding box to include the given vertex.
+     * Modifies this AABB in-place and returns it for chaining.
+     *
+     * @param v the vertex to include
+     * @return this AABB for method chaining
+     */
     public AABB extendToVertex(Vector3 v) {
         if (v.X() < minX) minX = v.X();
         if (v.Y() < minY) minY = v.Y();
@@ -58,6 +104,13 @@ public class AABB {
         return this;
     }
 
+    /**
+     * Extends this bounding box to include another AABB.
+     * Modifies this AABB in-place and returns it for chaining.
+     *
+     * @param other the AABB to include
+     * @return this AABB for method chaining
+     */
     public AABB extendToAABB(AABB other) {
         if (other.minX < minX) minX = other.minX;
         if (other.minY < minY) minY = other.minY;

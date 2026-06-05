@@ -8,11 +8,26 @@ import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.Material;
 
+/**
+ * Triangular area light source with barycentric coordinate sampling.
+ * Supports arbitrary triangle geometry for flexible light positioning.
+ * Implements Cook-Torrance BRDF for physically-based lighting.
+ */
 public class TriangleAreaLight extends AreaLight {
     private Vector3 v1;
     private Vector3 v2;
     private Vector3 v3;
 
+    /**
+     * Constructs a triangular area light.
+     *
+     * @param origin the origin offset for the triangle
+     * @param v1 the first vertex of the triangle
+     * @param v2 the second vertex of the triangle
+     * @param v3 the third vertex of the triangle
+     * @param lightColor the RGB color of emitted light
+     * @param intensity the intensity/power of the light
+     */
     public TriangleAreaLight(Vector3 origin, Vector3 v1, Vector3 v2, Vector3 v3, RGBColor lightColor, double intensity) {
         super(origin, lightColor, intensity);
         this.v1 = v1;
@@ -20,18 +35,39 @@ public class TriangleAreaLight extends AreaLight {
         this.v3 = v3;
     }
 
+    /**
+     * Gets the first vertex of the triangle.
+     *
+     * @return the first vertex
+     */
     public Vector3 v1() {
         return v1;
     }
 
+    /**
+     * Gets the second vertex of the triangle.
+     *
+     * @return the second vertex
+     */
     public Vector3 v2() {
         return v2;
     }
 
+    /**
+     * Gets the third vertex of the triangle.
+     *
+     * @return the third vertex
+     */
     public Vector3 v3() {
         return v3;
     }
 
+    /**
+     * Generates a random sample point uniformly distributed on the triangular surface.
+     * Uses barycentric coordinates for proper uniform distribution.
+     *
+     * @return a random point on the triangle surface
+     */
     @Override
     public Vector3 getSample() {
         double alpha = Math.random();

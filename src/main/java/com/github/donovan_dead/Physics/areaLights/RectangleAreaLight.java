@@ -8,26 +8,55 @@ import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.Material;
 
+/**
+ * Rectangular area light source with uniform sampling.
+ * Supports arbitrary width and height dimensions.
+ * Implements Cook-Torrance BRDF for physically-based lighting.
+ */
 public class RectangleAreaLight extends AreaLight {
     private double width;
     private double height;
     private Vector3 up = new Vector3(0, 1, 0);
     private Vector3 side = new Vector3(1, 0, 0);
 
+    /**
+     * Constructs a rectangular area light.
+     *
+     * @param origin the position of the light (center of rectangle)
+     * @param width the width of the rectangular surface
+     * @param height the height of the rectangular surface
+     * @param lightColor the RGB color of emitted light
+     * @param intensity the intensity/power of the light
+     */
     public RectangleAreaLight(Vector3 origin, double width, double height, RGBColor lightColor, double intensity) {
         super(origin, lightColor, intensity);
         this.width = width;
         this.height = height;
     }
 
+    /**
+     * Gets the width of the rectangular surface.
+     *
+     * @return the width
+     */
     public double width() {
         return width;
     }
 
+    /**
+     * Gets the height of the rectangular surface.
+     *
+     * @return the height
+     */
     public double height() {
         return height;
     }
 
+    /**
+     * Generates a random sample point uniformly distributed on the rectangular surface.
+     *
+     * @return a random point on the rectangle surface
+     */
     @Override
     public Vector3 getSample() {
         currentSample = up.scale((Math.random() - 0.5) * height).add(side.scale((Math.random() - 0.5) * width)).add(origin);

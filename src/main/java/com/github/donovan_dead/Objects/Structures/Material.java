@@ -3,6 +3,11 @@ package com.github.donovan_dead.Objects.Structures;
 import com.github.donovan_dead.Math.Vector3;
 import java.io.IOException;
 
+/**
+ * Represents a material with support for the Phong and Cook-Torrance BRDF models.
+ * Stores color coefficients (Ka, Kd, Ks), optical properties (opacity, refractive index),
+ * and multiple texture maps (color, specular, normal, roughness, metallic).
+ */
 public class Material {
 
     private static final Material DEFAULT_MATERIAL = new Material();
@@ -34,6 +39,9 @@ public class Material {
     private double Ns;
     private double Ni;
 
+    /**
+     * Constructs a Material with default pink-tinted properties.
+     */
     public Material() {
         this.Ka = new Vector3(0.05, 0.05, 0.05);
         this.Kd = new Vector3(0.7, 0.4, 0.5);
@@ -159,10 +167,19 @@ public class Material {
         this.Ni = Ni;
     }
 
+    /**
+     * Creates a new Material builder.
+     *
+     * @return a new Builder instance
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder for constructing Material instances with fluent API.
+     * Supports loading textures from files or using programmatic values.
+     */
     public static class Builder {
         private Texture ambientTexture;
         private Texture diffuseTexture;
@@ -181,6 +198,13 @@ public class Material {
         private double Ns = 32.0;
         private double Ni = 1.0;
 
+        /**
+         * Sets material coefficients from a single RGB color.
+         * Ka is set to 20% of the color, Kd to the full color, Ks to black.
+         *
+         * @param color the base color
+         * @return this builder for chaining
+         */
         public Builder fromVector(Vector3 color) {
             this.Ka = color.scale(0.2);
             this.Kd = color;
@@ -305,6 +329,12 @@ public class Material {
             return this;
         }
 
+        /**
+         * Resets the builder to default neutral material properties.
+         * Clears all textures and resets coefficients.
+         *
+         * @return this builder for chaining
+         */
         public Builder clean() {
             this.ambientTexture = null;
             this.diffuseTexture = null;
@@ -325,6 +355,11 @@ public class Material {
             return this;
         }
 
+        /**
+         * Builds and returns a Material instance with the configured properties.
+         *
+         * @return a new Material
+         */
         public Material build() {
             Material material = new Material();
             material.setAmbientTexture(this.ambientTexture);

@@ -14,8 +14,19 @@ import com.github.donovan_dead.Raytracer.ObjReader;
 import com.github.donovan_dead.Raytracer.Raytracer;
 import com.github.donovan_dead.Raytracer.Scene;
 
+/**
+ * Main entry point for the raytracer application.
+ * Handles scene setup, object loading, light configuration, and rendering.
+ */
 public class Main {
 
+    /**
+     * Loads all OBJ files from a directory and applies transformations and BVH construction.
+     * Constructs BVH trees in parallel using virtual threads for performance.
+     *
+     * @param dir the directory path containing OBJ files
+     * @return an ArrayList of loaded and processed ObjObject instances, or null if directory doesn't exist
+     */
     public static ArrayList<ObjObject> readObjectsFromDir(String dir){
         File directory = new File(dir);
 
@@ -37,6 +48,7 @@ public class Main {
 
         System.out.println("[OBJ] All files loaded");
 
+        ArrayList<Thread> bvhThreads = new ArrayList<>();
         int count = 0;
         for(ObjObject obj : list){
             if(count == 1){
@@ -54,7 +66,7 @@ public class Main {
 
                 obj.scale(1.1);
             } else if( count == 2) {
-                
+
                 obj.translate(
                     new Vector3(20, 0, -5)
                 );
@@ -66,14 +78,33 @@ public class Main {
                 obj.rotateX(Math.toRadians(55));
             }
 
-            obj.constructBVH();
-            System.out.println("[BVH] Object BVH built: " + obj.BVHTree.size() + " nodes.");
+            Thread t = Thread.ofVirtual().start(() -> {
+                obj.constructBVH();
+                System.out.println("[BVH] Object BVH built: " + obj.BVHTree.size() + " nodes.");
+            });
+            bvhThreads.add(t);
             count++;
+        }
+
+        for(Thread t : bvhThreads){
+            try {
+                t.join();
+            } catch(InterruptedException e){
+                Thread.currentThread().interrupt();
+            }
         }
 
         System.out.println("[BVH] All objects BVH finished");
         return list;
     }
+    /**
+     * Main method that initializes the raytracer, loads scenes, configures lighting, and renders frames.
+     * Sets up a camera with depth of field, creates scene geometry (OBJ objects and planes),
+     * adds area lights, and renders to PNG files in the "raytracer_output" directory.
+     *
+     * @param args command-line arguments (currently unused)
+     * @throws Exception if object loading or rendering fails
+     */
     public static void main(String[] args) throws Exception {
         Camera cam = new Camera(Vector3.builder().X(0).Y(0).Z(0).build(), 1, 1000, 0.2, 23);
         cam.translate(new Vector3(0, 9, 10));

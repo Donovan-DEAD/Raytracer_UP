@@ -14,8 +14,13 @@ import com.github.donovan_dead.Physics.Intersection;
 import com.github.donovan_dead.Physics.Ray;
 
 
+/**
+ * Represents a 3D object loaded from an OBJ file with support for ray intersection,
+ * transformations, and BVH-accelerated rendering. Implements Möller-Trumbore
+ * triangle intersection with smooth shading, texture mapping, and normal mapping.
+ */
 public class ObjObject extends Object3D {
-    
+
     private static final double EPSILON = 1e-8;
     
     ArrayList<Vector3> vertexList = new ArrayList<>();
@@ -33,12 +38,27 @@ public class ObjObject extends Object3D {
     public ArrayList<BVHNode> BVHTree;
     private ArrayList<Integer> auxiliarIdxList;
 
+    /**
+     * Calculates the closest ray-triangle intersection using BVH acceleration.
+     *
+     * @param ray the ray to intersect with the object's geometry
+     * @return an {@code Intersection} object containing normal, distance, material, and UV coordinates,
+     *         or {@code null} if no intersection occurs
+     */
     public Intersection calculateIntersection(Ray ray){
         // System.out.println(BVHTree.isEmpty());
         if(BVHTree.isEmpty()) return null;
         return recursiveIntersection(ray, 0);
     }
 
+    /**
+     * Recursively traverses the BVH tree to find ray-triangle intersections.
+     * Uses Möller-Trumbore algorithm for triangle intersection testing.
+     *
+     * @param ray the ray to intersect
+     * @param nodeIdx the current BVH node index in the tree
+     * @return the closest intersection, or null if no intersection exists
+     */
     private Intersection recursiveIntersection(Ray ray , int nodeIdx){
         BVHNode node = BVHTree.get(nodeIdx);
 
@@ -87,10 +107,11 @@ public class ObjObject extends Object3D {
                     triUV0 = uvList.get(uvIdxList.get(i * 3));
                     triUV1 = uvList.get(uvIdxList.get(i * 3 + 1));
                     triUV2 = uvList.get(uvIdxList.get(i * 3 + 2));
-                    uv = new UV(
-                        triUV0.getU() * b.alpha() + triUV1.getU() * b.beta() + triUV2.getU() * b.gamma(),
-                        triUV0.getV() * b.alpha() + triUV1.getV() * b.beta() + triUV2.getV() * b.gamma()
-                    );
+                    double rawU = triUV0.getU() * b.alpha() + triUV1.getU() * b.beta() + triUV2.getU() * b.gamma();
+                    double rawV = triUV0.getV() * b.alpha() + triUV1.getV() * b.beta() + triUV2.getV() * b.gamma();
+                    double wrappedU = ((rawU % 1.0) + 1.0) % 1.0;
+                    double wrappedV = ((rawV % 1.0) + 1.0) % 1.0;
+                    uv = new UV(wrappedU, wrappedV);
                 } else {
                     uv = new UV(0.5, 0.5);
                 }
@@ -163,6 +184,11 @@ public class ObjObject extends Object3D {
         }
     }
     
+    /**
+     * Scales the object around its centroid by the specified factor.
+     *
+     * @param scale the scaling factor (> 0). Values > 1 enlarge, < 1 shrink, = 1 unchanged
+     */
     public void scale(double scale){
         Vector3 centroid = new Vector3(0,0,0);
         
@@ -177,6 +203,11 @@ public class ObjObject extends Object3D {
         }
     }  
 
+    /**
+     * Rotates the object around the X-axis through its centroid.
+     *
+     * @param angleRadians rotation angle in radians (counter-clockwise when viewed from positive X)
+     */
     public void rotateX(double angleRadians){
         Vector3 centroid = new Vector3(0,0,0);
         
@@ -191,6 +222,11 @@ public class ObjObject extends Object3D {
         }
     }
 
+    /**
+     * Rotates the object around the Y-axis through its centroid.
+     *
+     * @param angleRadians rotation angle in radians (counter-clockwise when viewed from positive Y)
+     */
     public void rotateY(double angleRadians){
         Vector3 centroid = new Vector3(0,0,0);
         
@@ -205,6 +241,11 @@ public class ObjObject extends Object3D {
         }
     }
 
+    /**
+     * Rotates the object around the Z-axis through its centroid.
+     *
+     * @param angleRadians rotation angle in radians (counter-clockwise when viewed from positive Z)
+     */
     public void rotateZ(double angleRadians){
         Vector3 centroid = new Vector3(0,0,0);
         
@@ -219,16 +260,26 @@ public class ObjObject extends Object3D {
         }
     }
     
+    /**
+     * Translates the object by the specified vector.
+     *
+     * @param v the translation vector to apply to all vertices
+     */
     public void translate(Vector3 v){
         for(int i = 0; i < vertexList.size(); i++){
             vertexList.set(
-                i, 
+                i,
                 vertexList.get(i).add(v)
             );
         }
 
     }
 
+    /**
+     * Constructs a Bounding Volume Hierarchy (BVH) tree using the Surface Area Heuristic (SAH).
+     * This accelerates ray-triangle intersection queries. Must be called before rendering.
+     * Reorganizes triangle data for optimal cache locality and traversal efficiency.
+     */
     public void constructBVH(){
         auxiliarIdxList = new ArrayList<>(vertIdxList.size()/3);
         for(int i = 0; i < vertIdxList.size()/3; i++){
@@ -268,6 +319,14 @@ public class ObjObject extends Object3D {
         materialIdxList = newMaterialIndexes;
     }
 
+    /**
+     * Recursively constructs a BVH node for the triangle range [start, end).
+     * Uses SAH to determine optimal split axis and position. Stops when leaf size threshold is reached.
+     *
+     * @param start the starting index in auxiliarIdxList
+     * @param end the ending index (exclusive)
+     * @return the index of the created BVH node
+     */
     private int recursiveBVHConstruction(int start, int end){
         BVHNode node = new BVHNode();
         int nodeIdx = BVHTree.size();
@@ -338,6 +397,15 @@ public class ObjObject extends Object3D {
         }
     }
 
+    /**
+     * Evaluates Surface Area Heuristic (SAH) splits for a given axis.
+     * Uses prefix arrays for efficient O(n) computation of split costs.
+     *
+     * @param start the starting index
+     * @param end the ending index (exclusive)
+     * @param axis the axis to evaluate (0=X, 1=Y, 2=Z)
+     * @param res the Result object to update if a better split is found
+     */
     private void evaluateSAHSplits(int start, int end, int axis, Result res) {
         int n = end - start;
 
@@ -364,6 +432,12 @@ public class ObjObject extends Object3D {
         }
     }
 
+    /**
+     * Computes the axis-aligned bounding box for a triangle.
+     *
+     * @param pos the position in auxiliarIdxList
+     * @return the AABB enclosing the triangle's three vertices
+     */
     private AABB getTriangleAABB(int pos) {
         int triIdx = auxiliarIdxList.get(pos);
         Vector3 v0 = vertexList.get(vertIdxList.get(triIdx * 3));
@@ -375,6 +449,12 @@ public class ObjObject extends Object3D {
         return aabb;
     }
 
+    /**
+     * Computes the centroid of a triangle.
+     *
+     * @param index the triangle index in auxiliarIdxList
+     * @return the centroid as the average of the three vertices
+     */
     private Vector3 getTrianguleCentroid(int index){
         Vector3 v0 =  vertexList.get(
             vertIdxList.get(
@@ -400,6 +480,13 @@ public class ObjObject extends Object3D {
         return v0.scale(1.0/3.0);
     }
 
+    /**
+     * Constructs an AABB encompassing all triangles in the range [start, end).
+     *
+     * @param start the starting index in auxiliarIdxList
+     * @param end the ending index (exclusive)
+     * @return an AABB enclosing all triangles in the range
+     */
     private AABB constructAABB(int start, int end){
         AABB aabb = new AABB( 
            vertexList.get(
@@ -444,14 +531,28 @@ public class ObjObject extends Object3D {
         return aabb;
     }
 
+    /**
+     * Returns the axis-aligned bounding box of the entire object.
+     *
+     * @return the root AABB of the BVH tree enclosing all geometry
+     */
     public AABB getBox(){
         return BVHTree.get(0).getBox();
     }
 
+    /**
+     * Creates a builder for constructing ObjObject instances.
+     *
+     * @return a new {@code Builder} for fluent object construction
+     */
     public static Builder builder(){
         return new Builder();
     }
 
+    /**
+     * Builder pattern for constructing ObjObject instances with fluent API.
+     * Allows flexible configuration of geometry, normals, UVs, and materials.
+     */
     public static class Builder {
         ArrayList<Vector3> vertex;
         ArrayList<Integer> vertIdxList;
@@ -505,6 +606,11 @@ public class ObjObject extends Object3D {
             return this;
         }
 
+        /**
+         * Builds and returns a fully initialized ObjObject.
+         *
+         * @return a new ObjObject with the configured geometry and materials
+         */
         public ObjObject build() {
             ObjObject object = new ObjObject();
 
@@ -524,11 +630,22 @@ public class ObjObject extends Object3D {
         }
     }
 
+    /**
+     * Internal class for tracking the best SAH split candidate during BVH construction.
+     * Stores the cost, index, and axis of the optimal split position.
+     */
     private static class Result {
         public double candidateCost = Double.MAX_VALUE;
         public int candidateIdx = 0;
         public int candidateAxis = 0;
-        
+
+        /**
+         * Updates this result if the given cost is better than the current candidate.
+         *
+         * @param cost the cost of the split candidate
+         * @param idx the split position index
+         * @param axis the axis along which the split was evaluated (0=X, 1=Y, 2=Z)
+         */
         public void compareToOther(double cost, int idx, int axis){
             if(candidateCost > cost)
             {

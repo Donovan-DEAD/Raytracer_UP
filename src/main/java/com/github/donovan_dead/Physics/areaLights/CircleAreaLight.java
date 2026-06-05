@@ -8,20 +8,44 @@ import com.github.donovan_dead.Math.Utils;
 import com.github.donovan_dead.Math.Vector3;
 import com.github.donovan_dead.Objects.Structures.Material;
 
+/**
+ * Circular area light source with uniform disc sampling.
+ * Supports rotation in any axis for directional control.
+ * Implements Cook-Torrance BRDF for physically-based lighting.
+ */
 public class CircleAreaLight extends AreaLight {
     private Vector3 up = new Vector3(0, 1, 0);
     private Vector3 side = new Vector3(1, 0, 0);
     private double radius;
 
+    /**
+     * Constructs a circular area light.
+     *
+     * @param origin the position of the light
+     * @param radius the radius of the circular light surface
+     * @param lightColor the RGB color of emitted light
+     * @param intensity the intensity/power of the light
+     */
     public CircleAreaLight(Vector3 origin, double radius, RGBColor lightColor, double intensity) {
         super(origin, lightColor, intensity);
         this.radius = radius;
     }
 
+    /**
+     * Gets the radius of the circular light surface.
+     *
+     * @return the radius
+     */
     public double radius() {
         return radius;
     }
 
+    /**
+     * Generates a random sample point uniformly distributed on the circular surface.
+     * Uses proper square-root sampling to ensure uniform distribution.
+     *
+     * @return a random point on the circle surface
+     */
     @Override
     public Vector3 getSample() {
         double angle = Math.toRadians(Math.random() * 360);
@@ -124,16 +148,31 @@ public class CircleAreaLight extends AreaLight {
         return diffContrib.add(spec);
     }
 
+    /**
+     * Rotates the light's orientation around the X-axis.
+     *
+     * @param angleInRad rotation angle in radians
+     */
     public void rotateX(double angleInRad){
         up = up.rotateX(angleInRad).normalize();
         side = side.rotateX(angleInRad).normalize();
     }
 
+    /**
+     * Rotates the light's orientation around the Y-axis.
+     *
+     * @param angleInRad rotation angle in radians
+     */
     public void rotateY(double angleInRad){
         up = up.rotateY(angleInRad).normalize();
         side = side.rotateY(angleInRad).normalize();
     }
 
+    /**
+     * Rotates the light's orientation around the Z-axis.
+     *
+     * @param angleInRad rotation angle in radians
+     */
     public void rotateZ(double angleInRad){
         up = up.rotateZ(angleInRad).normalize();
         side = side.rotateZ(angleInRad).normalize();
